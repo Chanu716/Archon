@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
+import { Zap, X, Terminal, ArrowRight, Bot } from 'lucide-react'
 
 interface AnalystPanelProps {
   repoId: string
@@ -20,39 +21,27 @@ export default function AnalystPanel({ repoId, onClose }: AnalystPanelProps) {
   const [error, setError] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
 
-  // Auto-scroll to bottom of answer
   useEffect(() => {
     if (bottomRef.current) {
       bottomRef.current.scrollIntoView({ behavior: 'smooth' })
     }
   }, [parsedAnswer])
 
-  // Try to extract fields from partial JSON
   useEffect(() => {
     if (!streamedRawJson) return
-    
-    // Very naive partial JSON extraction for smooth UX while streaming
-    // A robust app would use a streaming JSON parser (e.g., partial-json)
     try {
-      // Attempt full parse first
       const fullObj = JSON.parse(streamedRawJson)
       if (fullObj.answer) setParsedAnswer(fullObj.answer)
       if (fullObj.confidence) setParsedConfidence(fullObj.confidence)
       if (fullObj.referenced_evidence_ids) setParsedCitations(fullObj.referenced_evidence_ids)
     } catch (e) {
-      // If partial, try regex extraction for answer
       const answerMatch = streamedRawJson.match(/"answer"\s*:\s*"([^]*)/)
       if (answerMatch) {
-        // Strip out trailing incomplete JSON bits if any
         let partialText = answerMatch[1]
-        
-        // Remove trailing quotes and slashes if it looks cut off
         partialText = partialText.replace(/\\n/g, '\n').replace(/\\"/g, '"')
-        
-        // Very rough cutoff fix for display
         const endQuoteIdx = partialText.lastIndexOf('","')
         if (endQuoteIdx > -1) {
-             partialText = partialText.substring(0, endQuoteIdx)
+          partialText = partialText.substring(0, endQuoteIdx)
         }
         setParsedAnswer(partialText)
       }
@@ -72,7 +61,8 @@ export default function AnalystPanel({ repoId, onClose }: AnalystPanelProps) {
     setTraces([])
 
     try {
-      const response = await fetch(`http://localhost:8000/api/v1/repositories/${repoId}/analyst/query`, {
+      const apiBase = import.meta.env.VITE_API_BASE_URL || '/api/v1'
+      const response = await fetch(`${apiBase}/repositories/${repoId}/analyst/query`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question })
@@ -132,56 +122,65 @@ export default function AnalystPanel({ repoId, onClose }: AnalystPanelProps) {
   }
 
   return (
-    <div className="w-96 bg-gray-950 border-l border-gray-700 flex flex-col h-full overflow-hidden absolute right-0 z-30 shadow-2xl">
-      <div className="p-4 border-b border-gray-800 flex justify-between items-center bg-gray-900">
-        <h2 className="text-white font-bold text-sm flex items-center gap-2">
-          <span className="text-blue-500">⚡</span> Archon Analyst
-        </h2>
-        <button onClick={onClose} className="text-gray-500 hover:text-white flex-shrink-0 text-lg leading-none">✕</button>
+    <div className="w-96 bg-black border-l-2 border-white flex flex-col h-full overflow-hidden absolute right-0 z-30 shadow-pixel font-mono text-xs">
+      {/* Header */}
+      <div className="p-3.5 border-b-2 border-white flex justify-between items-center bg-neutral-950">
+        <div className="flex items-center gap-2">
+          <Zap className="w-4 h-4 text-cyan-400" />
+          <h2 className="font-pixel text-[11px] text-white">[ AI_CODE_ANALYST ]</h2>
+        </div>
+        <button
+          onClick={onClose}
+          className="text-neutral-400 hover:text-white p-1 border border-neutral-800 hover:border-white transition flex-shrink-0 text-xs"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-black">
         {traces.length > 0 && (
-          <div className="bg-gray-900 border border-gray-800 rounded p-2 text-xs font-mono text-gray-500 mb-4 space-y-1">
+          <div className="border border-neutral-800 bg-neutral-950 p-2.5 space-y-1 font-mono text-[11px]">
+            <div className="font-pixel text-[9px] text-neutral-500 mb-1">[ REASONING_TRACE ]</div>
             {traces.map((trace, idx) => (
-              <div key={idx} className="flex gap-2">
-                <span>{trace.startsWith('✓') ? '✓' : trace.startsWith('⚠️') ? '⚠️' : '·'}</span>
-                <span className="text-gray-400">{trace.replace(/^[✓⚠️]\s*/, '')}</span>
+              <div key={idx} className="flex items-center gap-2 text-neutral-400">
+                <span className="text-cyan-400 font-pixel">›</span>
+                <span className="truncate">{trace.replace(/^[✓⚠️]\s*/, '')}</span>
               </div>
             ))}
           </div>
         )}
         
         {parsedAnswer ? (
-          <div className="text-gray-300 text-sm leading-relaxed">
+          <div className="text-neutral-200 text-xs leading-relaxed space-y-3">
             <ReactMarkdown
               components={{
-                a: ({ node, ...props }) => <span className="text-blue-400 font-mono cursor-pointer hover:underline" {...props} />
+                a: ({ node, ...props }) => <span className="text-cyan-400 font-mono hover:underline" {...props} />,
+                code: ({ node, ...props }) => <code className="bg-neutral-900 border border-neutral-800 px-1 py-0.5 text-cyan-300 font-mono text-[11px]" {...props} />,
+                p: ({ node, ...props }) => <p className="mb-2" {...props} />,
               }}
             >
               {parsedAnswer}
             </ReactMarkdown>
             
-            {/* Confidence & Citations when done streaming */}
             {!isAnalyzing && parsedConfidence && (
-              <div className="mt-6 pt-4 border-t border-gray-800">
+              <div className="mt-4 pt-3 border-t border-neutral-800">
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-xs text-gray-500 uppercase font-semibold">Evidence Confidence</span>
-                  <span className={`text-xs px-2 py-0.5 rounded font-mono ${
-                    parsedConfidence === 'HIGH' ? 'bg-green-900/40 text-green-400' :
-                    parsedConfidence === 'MEDIUM' ? 'bg-yellow-900/40 text-yellow-400' :
-                    'bg-orange-900/40 text-orange-400'
+                  <span className="font-pixel text-[9px] text-neutral-500">[ CONFIDENCE ]</span>
+                  <span className={`text-[10px] px-1.5 py-0.5 font-pixel border ${
+                    parsedConfidence === 'HIGH' ? 'border-green-500 text-green-400 bg-green-950' :
+                    parsedConfidence === 'MEDIUM' ? 'border-amber-500 text-amber-400 bg-amber-950' :
+                    'border-red-500 text-red-400 bg-red-950'
                   }`}>
                     {parsedConfidence}
                   </span>
                 </div>
                 
                 {parsedCitations.length > 0 && (
-                  <div className="mt-4">
-                    <span className="text-xs text-gray-500 uppercase font-semibold block mb-2">Referenced Evidence</span>
-                    <div className="flex flex-wrap gap-2">
+                  <div className="mt-3">
+                    <span className="font-pixel text-[9px] text-neutral-500 block mb-1.5">[ EVIDENCE_CITATIONS ]</span>
+                    <div className="flex flex-wrap gap-1.5">
                       {parsedCitations.map(cit => (
-                        <span key={cit} className="text-xs font-mono bg-gray-800 text-gray-400 px-2 py-1 rounded border border-gray-700">
+                        <span key={cit} className="text-[10px] font-mono bg-neutral-950 text-cyan-400 px-2 py-0.5 border border-neutral-800">
                           [{cit}]
                         </span>
                       ))}
@@ -194,32 +193,34 @@ export default function AnalystPanel({ repoId, onClose }: AnalystPanelProps) {
             <div ref={bottomRef} />
           </div>
         ) : (
-          <div className="h-full flex flex-col items-center justify-center text-center opacity-60">
-            <div className="text-4xl mb-4">🤖</div>
-            <p className="text-gray-400 text-sm max-w-xs">Ask me anything about this repository's structure, history, metrics, or semantics.</p>
+          <div className="h-full flex flex-col items-center justify-center text-center opacity-60 p-6 space-y-3">
+            <Bot className="w-8 h-8 text-cyan-400" />
+            <p className="text-neutral-400 text-xs font-mono">
+              Query the LLM analyst on structural coupling, dead code, or architecture patterns.
+            </p>
           </div>
         )}
 
         {isAnalyzing && !parsedAnswer && (
-          <div className="text-blue-400 text-sm animate-pulse text-center mt-8">
-            Retrieving evidence...
+          <div className="text-cyan-400 font-pixel text-xs animate-pulse text-center mt-6">
+            [ EXECUTING_REASONING_PIPELINE… ]
           </div>
         )}
 
         {error && (
-          <div className="p-3 bg-red-900/30 border border-red-800/50 rounded text-red-400 text-xs">
-            {error}
+          <div className="p-2.5 border border-red-500 bg-red-950 text-red-400 text-xs">
+            [ERROR] {error}
           </div>
         )}
       </div>
 
-      <div className="p-4 border-t border-gray-800 bg-gray-900">
+      <div className="p-3 border-t-2 border-white bg-neutral-950">
         <form onSubmit={handleAsk} className="flex flex-col gap-2">
           <textarea
             value={question}
             onChange={e => setQuestion(e.target.value)}
-            placeholder="e.g. How does authentication work?"
-            className="w-full bg-gray-950 border border-gray-700 text-gray-200 text-sm rounded px-3 py-2 focus:outline-none focus:border-blue-500 placeholder-gray-600 resize-none h-20"
+            placeholder="> ask architecture query…"
+            className="w-full pixel-input text-xs px-3 py-2 focus:outline-none resize-none h-16"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault()
@@ -230,9 +231,10 @@ export default function AnalystPanel({ repoId, onClose }: AnalystPanelProps) {
           <button 
             type="submit" 
             disabled={!question.trim() || isAnalyzing}
-            className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 text-white px-4 py-2 rounded text-sm font-medium transition-colors self-end w-full"
+            className="pixel-btn-filled-cyan py-1.5 flex items-center justify-center gap-1.5 disabled:opacity-50"
           >
-            {isAnalyzing ? 'Analyzing...' : 'Ask Analyst'}
+            <span>{isAnalyzing ? 'SYNTHESIZING…' : 'QUERY_ANALYST'}</span>
+            <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </form>
       </div>

@@ -4,43 +4,143 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 0 0% 0%;
+    --foreground: 0 0% 100%;
+    --border: 0 0% 20%;
+    --input: 0 0% 15%;
+    --ring: 187 100% 50%;
+  }
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-
-    --radius: 0.5rem;
+  body {
+    background-color: #000000;
+    color: #ffffff;
+    font-family: 'JetBrains Mono', monospace;
   }
 }
 
-@layer base {
-  * {
-    @apply border-border;
+/* Custom Cyber-Pixel Utilities */
+@layer components {
+  .pixel-box {
+    border: 2px solid #ffffff;
+    background-color: #080808;
+    box-shadow: 3px 3px 0px 0px #262626;
   }
-  body {
-    @apply bg-background text-foreground font-sans;
+
+  .pixel-box-cyan {
+    border: 2px solid #00f3ff;
+    background-color: #050d12;
+    box-shadow: 3px 3px 0px 0px rgba(0, 243, 255, 0.5);
   }
+
+  .pixel-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Silkscreen', monospace;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.35rem 0.75rem;
+    border: 2px solid #ffffff;
+    background-color: #000000;
+    color: #ffffff;
+    box-shadow: 2px 2px 0px 0px #ffffff;
+    transition: transform 0.05s ease, box-shadow 0.05s ease, background-color 0.15s ease;
+  }
+
+  .pixel-btn:hover {
+    background-color: #171717;
+  }
+
+  .pixel-btn:active {
+    transform: translate(2px, 2px);
+    box-shadow: 0px 0px 0px 0px #ffffff;
+  }
+
+  .pixel-btn-cyan {
+    border-color: #00f3ff;
+    color: #00f3ff;
+    box-shadow: 2px 2px 0px 0px #00f3ff;
+  }
+
+  .pixel-btn-cyan:hover {
+    background-color: #00f3ff;
+    color: #000000;
+  }
+
+  .pixel-btn-cyan:active {
+    transform: translate(2px, 2px);
+    box-shadow: 0px 0px 0px 0px #00f3ff;
+  }
+
+  .pixel-btn-filled-cyan {
+    background-color: #00f3ff;
+    color: #000000;
+    border-color: #00f3ff;
+    box-shadow: 2px 2px 0px 0px #ffffff;
+    font-weight: 700;
+  }
+
+  .pixel-btn-filled-cyan:hover {
+    background-color: #00ffcc;
+    border-color: #00ffcc;
+  }
+
+  .pixel-btn-filled-cyan:active {
+    transform: translate(2px, 2px);
+    box-shadow: 0px 0px 0px 0px #ffffff;
+  }
+
+  .pixel-tag {
+    font-family: 'Silkscreen', monospace;
+    font-size: 0.65rem;
+    padding: 0.15rem 0.4rem;
+    border: 1px solid #333333;
+    background-color: #0d0d0d;
+    color: #a3a3a3;
+  }
+
+  .pixel-tag-cyan {
+    border-color: #00f3ff;
+    background-color: rgba(0, 243, 255, 0.1);
+    color: #00f3ff;
+  }
+
+  .pixel-input {
+    border: 2px solid #333333;
+    background-color: #050505;
+    color: #ffffff;
+    font-family: 'JetBrains Mono', monospace;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .pixel-input:focus {
+    outline: none;
+    border-color: #00f3ff;
+    box-shadow: 2px 2px 0px 0px #00f3ff;
+  }
+}
+
+/* Custom Scrollbars in Retro Pixel Theme */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #000000;
+  border-left: 1px solid #1f1f1f;
+}
+::-webkit-scrollbar-thumb {
+  background: #333333;
+  border: 1px solid #ffffff;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #00f3ff;
+}
+
+/* Subtle CRT scanline effect utility */
+.crt-grid {
+  background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 24px 24px;
 }

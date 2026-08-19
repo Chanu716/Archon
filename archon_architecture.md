@@ -828,32 +828,40 @@ Stream final answer via SSE with Sources
 ### Technology Stack
 - React 18 + TypeScript (strict)
 - Vite, React Router v6
-- Zustand (global state) + TanStack Query (server state)
-- Cytoscape.js (graph visualization — graph-native, handles large graphs)
-- Recharts (metrics charts)
-- Tailwind CSS + shadcn/ui
+- TanStack Query (server state & caching)
+- Three.js WebGL (3D Force-directed Galaxy Graph)
+- Cytoscape.js (2D Planar Graph with 4 layout engines: CoSE, DAG Tree, Concentric, Circle)
+- Recharts (evolution & metric charts)
+- Tailwind CSS
 
 ### Page Structure
-- `/repositories` — list + add new
-- `/repositories/:id/overview` — metrics cards, risk distribution, hotspots
-- `/repositories/:id/architecture` — Cytoscape.js module/file graph
-- `/repositories/:id/dependencies` — import dependency graph
-- `/repositories/:id/explorer` — file tree + code viewer + function metrics
-- `/repositories/:id/impact` — impact analysis visualization
-- `/repositories/:id/git` — contributors, churn
-- `/repositories/:id/ai` — AI analyst chat
+- `/repositories` (`RepositoriesPage.tsx`) — repository registry and ingestion
+- `/repositories/:id/overview` (`OverviewPage.tsx`) — analysis stage progress and repository hub
+- `/repositories/:id/architecture` (`ArchitecturePage.tsx`) — interactive 3D Galaxy & 2D Planar architecture graphs
+- `/repositories/:id/health` (`HealthDashboard.tsx`) — structural topology, complexity, and circular cycles
+- `/repositories/:id/git` (`GitDashboard.tsx`) — commit velocity, author touch matrix, and churn hotspots
+- `/repositories/:id/evolution` (`EvolutionDashboard.tsx`) — multi-snapshot comparison, drift findings, and timeline trends
+- `/repositories/:id/investigation` (`IntelligenceWorkbench.tsx`) — multi-dimensional entity investigation dossier
+
+### Core Component Architecture
+- `ThreeDArchitectureGraph.tsx` — WebGL 3D galaxy visualization with orbit rotation, top-down 2.5D camera, and particle links
+- `TwoDArchitectureGraph.tsx` — 2D Cytoscape architecture graph with layout selector, edge label toggles, and hover tracing
+- `EntityDetailsPanel.tsx` — inspector drawer for AST properties, metrics (`[DET]` / `[HEU]`), and subtree expansion
+- `ImpactPanel.tsx` — BFS blast radius and impact traversal with depth selection and graph highlighting
+- `SemanticSearchPanel.tsx` — vector embedding code search modal with similarity scores and code snippets
+- `AnalystPanel.tsx` — AI analyst console with streaming SSE reasoning traces and evidence citations
 
 ### Visual Distinction of Information Types
 
-The UI must render three categories with distinct visual treatment:
-- **Deterministic facts**: Standard data tables, neutral color
-- **Archon Heuristic v1**: Badge labeled "Archon Heuristic v1", amber/orange accent
-- **AI Interpretation**: Card labeled "AI Analysis", distinct background, italic text
+The UI renders three categories with distinct visual treatment:
+- **Deterministic facts**: Tagged `[DET]`, computed directly from AST analysis
+- **Archon Heuristic v1**: Tagged `[HEU]`, composite algorithmic risk and coupling scoring
+- **AI Interpretation**: Labeled `AI Analysis`, streaming markdown with verifiable evidence citation chips
 
 Call resolution states in graph views:
-- **Exact**: solid edge
-- **Inferred**: dashed edge with tooltip "inferred relationship"
-- **Unresolved**: dotted edge, grayed out
+- **Exact**: solid edge with target color
+- **Inferred**: directional particle stream / dashed boundary
+- **Unresolved**: dimmed edge with low opacity
 
 ---
 

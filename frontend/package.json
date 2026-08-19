@@ -23,9 +23,12 @@
     "react-router-dom": "^7.18.2",
     "recharts": "^3.10.1",
     "tailwind-merge": "^3.6.0",
+    "three": "^0.185.0",
+    "3d-force-graph": "^1.77.2",
     "zustand": "^5.0.14"
   },
   "devDependencies": {
+    "@types/three": "^0.185.0",
     "@types/cytoscape": "^3.21.9",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.17",

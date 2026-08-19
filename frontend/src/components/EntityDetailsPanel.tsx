@@ -1,7 +1,7 @@
-import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { api } from '@/api/client'
+import { Sparkles, Search, Zap, X } from 'lucide-react'
 
 interface MetricRow {
   name: string
@@ -26,9 +26,16 @@ interface EntityDetailsPanelProps {
   }
   onClose: () => void
   onAnalyzeImpact?: (nodeId: string, nodeName: string) => void
+  onExpandNode?: (nodeId: string) => void
 }
 
-export default function EntityDetailsPanel({ repoId, node, onClose, onAnalyzeImpact }: EntityDetailsPanelProps) {
+export default function EntityDetailsPanel({
+  repoId,
+  node,
+  onClose,
+  onAnalyzeImpact,
+  onExpandNode,
+}: EntityDetailsPanelProps) {
   const navigate = useNavigate()
   const entityType = node.type
   const entityName = node.qualified_name || node.path || node.label
@@ -50,12 +57,12 @@ export default function EntityDetailsPanel({ repoId, node, onClose, onAnalyzeImp
     Method: 'text-purple-400',
   }
 
-  const typeColor = typeColors[entityType] || 'text-gray-300'
+  const typeColor = typeColors[entityType] || 'text-cyan-400'
 
   const metricRows: MetricRow[] = []
   if (metricsData?.metrics) {
     const { metrics, sources } = metricsData
-      const displayNames: Record<string, string> = {
+    const displayNames: Record<string, string> = {
       cyclomatic_complexity: 'Cyclomatic Complexity',
       nesting_depth: 'Nesting Depth',
       line_count: 'Line Count',
@@ -83,87 +90,122 @@ export default function EntityDetailsPanel({ repoId, node, onClose, onAnalyzeImp
     }
   }
 
-  // Also show key AST properties stored directly on the node
   const nodeProps: { label: string; value: string | number | undefined }[] = [
-    { label: 'Type', value: entityType },
-    { label: 'Path', value: node.path },
-    { label: 'Lines', value: node.line_count !== undefined ? `${node.cyclomatic_complexity !== undefined ? node.cyclomatic_complexity : '?'} CC / ${node.line_count} lines` : undefined },
-    { label: 'End Line', value: node.end_line },
-    { label: 'Language', value: node.language },
+    { label: 'TYPE', value: entityType },
+    { label: 'PATH', value: node.path },
+    { label: 'COMPLEXITY_LINES', value: node.line_count !== undefined ? `${node.cyclomatic_complexity !== undefined ? node.cyclomatic_complexity : '?'} CC / ${node.line_count} lines` : undefined },
+    { label: 'END_LINE', value: node.end_line },
+    { label: 'LANGUAGE', value: node.language },
   ]
 
   return (
-    <div className="w-96 bg-gray-900 border-l border-gray-700 flex flex-col h-full overflow-hidden">
+    <div className="w-96 flex-shrink-0 bg-black border-l-2 border-white flex flex-col h-full overflow-hidden shadow-pixel z-30 font-mono text-xs">
       {/* Header */}
-      <div className="p-4 border-b border-gray-700 flex justify-between items-start">
+      <div className="p-3.5 border-b-2 border-white flex justify-between items-start bg-neutral-950">
         <div className="overflow-hidden">
-          <div className={`text-xs font-semibold uppercase tracking-wide mb-1 ${typeColor}`}>{entityType}</div>
-          <h2 className="text-white font-bold text-sm truncate" title={node.label}>{node.label}</h2>
+          <div className={`font-pixel text-[10px] uppercase tracking-wider mb-1 ${typeColor}`}>
+            [ {entityType} ]
+          </div>
+          <h2 className="text-white font-bold text-sm truncate font-mono" title={node.label}>
+            {node.label}
+          </h2>
           {node.qualified_name && node.qualified_name !== node.label && (
-            <p className="text-gray-500 text-xs mt-1 truncate" title={node.qualified_name}>{node.qualified_name}</p>
+            <p className="text-neutral-400 text-[11px] mt-0.5 truncate font-mono" title={node.qualified_name}>
+              {node.qualified_name}
+            </p>
           )}
         </div>
-        <button onClick={onClose} className="text-gray-500 hover:text-white ml-2 flex-shrink-0 text-lg leading-none">✕</button>
+        <button
+          onClick={onClose}
+          className="text-neutral-400 hover:text-white p-1 border border-neutral-800 hover:border-white transition flex-shrink-0 text-xs"
+          title="Close Inspector"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
       </div>
 
-      {/* Investigation and Impact triggers */}
-      <div className="px-4 py-2 border-b border-gray-800 flex-shrink-0 space-y-2">
+      {/* Cyber Actions Section */}
+      <div className="p-3 border-b border-neutral-800 flex-shrink-0 space-y-2 bg-neutral-950">
+        {onExpandNode && (
+          <button
+            onClick={() => onExpandNode(node.id)}
+            className="w-full pixel-btn-cyan text-[11px] py-1.5 flex items-center justify-center gap-1.5"
+            title="Expand 1-hop connected child nodes"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>[ + EXPAND_CHILDREN ]</span>
+          </button>
+        )}
         <button
           onClick={() => navigate(`/repositories/${repoId}/investigation?entity_id=${encodeURIComponent(node.id)}`)}
-          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs py-1.5 rounded transition font-medium"
+          className="w-full pixel-btn text-[11px] py-1.5 flex items-center justify-center gap-1.5 hover:border-cyan-400 hover:text-cyan-400"
+          title="Open in Intelligence Workbench"
         >
-          🔍 Open Investigation
+          <Search className="w-3.5 h-3.5" />
+          <span>{"[ > OPEN_WORKBENCH ]"}</span>
         </button>
         {onAnalyzeImpact && (
           <button
             onClick={() => onAnalyzeImpact(node.id, node.label)}
-            className="w-full bg-orange-700/20 hover:bg-orange-700/40 border border-orange-700/40 text-orange-300 text-xs py-1.5 rounded transition font-medium"
+            className="w-full pixel-btn text-[11px] py-1.5 flex items-center justify-center gap-1.5 text-amber-400 hover:border-amber-400"
+            title="Analyze blast radius impact"
           >
-            ⚡ Analyze Impact
+            <Zap className="w-3.5 h-3.5" />
+            <span>[ ! BLAST_RADIUS ]</span>
           </button>
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto p-3.5 space-y-4">
         {/* Docstring */}
         {node.docstring && (
-          <div className="p-4 border-b border-gray-800">
-            <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">Docstring</div>
-            <p className="text-gray-300 text-xs leading-relaxed italic">"{node.docstring}"</p>
+          <div className="border border-neutral-800 p-2.5 bg-neutral-950">
+            <div className="font-pixel text-[9px] text-neutral-400 uppercase mb-1.5">
+              [ DOCSTRING ]
+            </div>
+            <p className="text-neutral-300 text-xs leading-relaxed italic">
+              "{node.docstring}"
+            </p>
           </div>
         )}
 
         {/* Node Properties */}
-        <div className="p-4 border-b border-gray-800">
-          <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">Properties</div>
-          <div className="space-y-2">
+        <div className="border border-neutral-800 p-2.5 bg-neutral-950">
+          <div className="font-pixel text-[9px] text-neutral-400 uppercase mb-2">
+            [ ENTITY_PROPERTIES ]
+          </div>
+          <div className="space-y-1.5">
             {nodeProps.map(prop =>
               prop.value !== undefined && prop.value !== null ? (
-                <div key={prop.label} className="flex justify-between text-xs">
-                  <span className="text-gray-500">{prop.label}</span>
-                  <span className="text-gray-300 font-mono text-right max-w-[55%] truncate" title={String(prop.value)}>{prop.value}</span>
+                <div key={prop.label} className="flex justify-between items-center text-[11px]">
+                  <span className="text-neutral-500 font-pixel text-[9px]">{prop.label}:</span>
+                  <span className="text-neutral-200 font-mono text-right max-w-[60%] truncate" title={String(prop.value)}>
+                    {prop.value}
+                  </span>
                 </div>
               ) : null
             )}
           </div>
         </div>
 
-        {/* Metrics */}
+        {/* Code Health Metrics */}
         {(entityType === 'Function' || entityType === 'Class' || entityType === 'Module') && (
-          <div className="p-4">
-            <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">Deterministic Metrics</div>
-            {isLoading && <p className="text-gray-500 text-xs">Loading metrics...</p>}
+          <div className="border border-neutral-800 p-2.5 bg-neutral-950">
+            <div className="font-pixel text-[9px] text-neutral-400 uppercase mb-2">
+              [ DETERMINISTIC_METRICS ]
+            </div>
+            {isLoading && <p className="text-cyan-400 text-[11px] animate-pulse">[ FETCHING_METRICS… ]</p>}
             {!isLoading && metricRows.length === 0 && (
-              <p className="text-gray-600 text-xs italic">No metrics available for this entity yet. Run analysis first.</p>
+              <p className="text-neutral-500 text-[11px]">No metric telemetry available.</p>
             )}
             {metricRows.length > 0 && (
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {metricRows.map(row => (
-                  <div key={row.name} className="flex justify-between text-xs items-center">
-                    <span className="text-gray-400">{row.name}</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-white font-mono font-semibold">{row.value}</span>
-                      <span className={`text-xs px-1 rounded ${row.source === 'deterministic' ? 'bg-blue-900/40 text-blue-400' : 'bg-orange-900/40 text-orange-400'}`}>
+                  <div key={row.name} className="flex justify-between text-[11px] items-center border-b border-neutral-900 pb-1">
+                    <span className="text-neutral-400 truncate max-w-[55%]">{row.name}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-white font-mono font-bold">{row.value}</span>
+                      <span className={`text-[9px] px-1 font-pixel ${row.source === 'deterministic' ? 'bg-cyan-950 text-cyan-400 border border-cyan-800' : 'bg-amber-950 text-amber-400 border border-amber-800'}`}>
                         {row.source === 'deterministic' ? 'DET' : 'HEU'}
                       </span>
                     </div>
@@ -171,12 +213,6 @@ export default function EntityDetailsPanel({ repoId, node, onClose, onAnalyzeImp
                 ))}
               </div>
             )}
-            <div className="mt-4 pt-3 border-t border-gray-800">
-              <div className="flex gap-4 text-xs text-gray-600">
-                <div className="flex items-center gap-1"><span className="px-1 bg-blue-900/40 text-blue-400 rounded">DET</span> Deterministic</div>
-                <div className="flex items-center gap-1"><span className="px-1 bg-orange-900/40 text-orange-400 rounded">HEU</span> Heuristic</div>
-              </div>
-            </div>
           </div>
         )}
       </div>

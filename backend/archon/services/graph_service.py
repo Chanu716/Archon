@@ -27,10 +27,15 @@ class GraphService:
         return await self._execute_and_format(query)
 
     async def search_nodes(self, q: str, limit: int = 20) -> List[Dict[str, Any]]:
-        """Searches for nodes by qualified name or path."""
+        """Searches for nodes by qualified name, name, path, or label (case-insensitive)."""
         query = """
         MATCH (n {snapshot_id: $snapshot_id})
-        WHERE (n.qualified_name CONTAINS $q OR n.name CONTAINS $q OR n.path CONTAINS $q)
+        WHERE (
+            toLower(coalesce(n.qualified_name, '')) CONTAINS toLower($q)
+            OR toLower(coalesce(n.name, '')) CONTAINS toLower($q)
+            OR toLower(coalesce(n.path, '')) CONTAINS toLower($q)
+            OR toLower(coalesce(n.label, '')) CONTAINS toLower($q)
+        )
         AND NOT n:Repository
         RETURN n LIMIT $limit
         """
