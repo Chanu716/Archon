@@ -340,7 +340,9 @@ export default function IntelligenceWorkbench() {
       </div>
 
       {isAnalystOpen && (
-        <AnalystPanel repoId={repoId!} onClose={() => setIsAnalystOpen(false)} />
+        <div className="fixed top-0 right-0 bottom-0 z-50 h-screen">
+          <AnalystPanel repoId={repoId!} onClose={() => setIsAnalystOpen(false)} />
+        </div>
       )}
     </div>
   )

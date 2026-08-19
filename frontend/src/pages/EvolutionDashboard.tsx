@@ -249,11 +249,13 @@ export default function EvolutionDashboard() {
       </div>
 
       {analystOpen && repoId && (
-        <AnalystPanel
-          repoId={repoId}
-          snapshotId={currSnap}
-          onClose={() => setAnalystOpen(false)}
-        />
+        <div className="fixed top-0 right-0 bottom-0 z-50 h-screen">
+          <AnalystPanel
+            repoId={repoId}
+            snapshotId={currSnap}
+            onClose={() => setAnalystOpen(false)}
+          />
+        </div>
       )}
     </div>
   )

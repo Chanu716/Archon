@@ -120,9 +120,9 @@ export default function AnalystPanel({ repoId, onClose }: AnalystPanelProps) {
   }
 
   return (
-    <div className="w-96 bg-black border-l-2 border-white flex flex-col h-full overflow-hidden absolute right-0 z-30 shadow-pixel font-mono text-xs">
+    <div className="w-96 max-w-full bg-black border-l-2 border-white flex flex-col h-full overflow-hidden absolute right-0 top-0 bottom-0 z-30 shadow-pixel font-mono text-xs">
       {/* Header */}
-      <div className="p-3 border-b-2 border-white flex flex-col gap-2 bg-neutral-950">
+      <div className="p-3 border-b-2 border-white flex flex-col gap-2 bg-neutral-950 flex-shrink-0">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-2">
             <Zap className="w-4 h-4 text-cyan-400" />
@@ -153,7 +153,7 @@ export default function AnalystPanel({ repoId, onClose }: AnalystPanelProps) {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-black">
+      <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4 bg-black">
         {traces.length > 0 && (
           <div className="border border-neutral-800 bg-neutral-950 p-2.5 space-y-1 font-mono text-[11px]">
             <div className="font-pixel text-[9px] text-neutral-500 mb-1">[ REASONING_TRACE ]</div>
@@ -230,7 +230,7 @@ export default function AnalystPanel({ repoId, onClose }: AnalystPanelProps) {
         )}
       </div>
 
-      <div className="p-3 border-t-2 border-white bg-neutral-950">
+      <div className="p-3 border-t-2 border-white bg-neutral-950 flex-shrink-0">
         <form onSubmit={handleAsk} className="flex flex-col gap-2">
           <textarea
             value={question}

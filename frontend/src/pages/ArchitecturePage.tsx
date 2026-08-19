@@ -423,7 +423,7 @@ export default function ArchitecturePage() {
         </div>
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden relative">
         {/* Left Retro Terminal Sidebar */}
         <div className="w-60 border-r-2 border-white bg-black flex flex-col gap-4 p-3.5 overflow-y-auto flex-shrink-0 text-xs">
           <div>

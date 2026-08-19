@@ -49,9 +49,9 @@ export default function SemanticSearchPanel({ repoId, onSelectResult, onClose }:
   }
 
   return (
-    <div className="w-96 bg-black border-r-2 border-white flex flex-col h-full overflow-hidden absolute left-0 z-30 shadow-pixel font-mono text-xs">
+    <div className="w-96 max-w-full bg-black border-r-2 border-white flex flex-col h-full overflow-hidden absolute left-0 top-0 bottom-0 z-30 shadow-pixel font-mono text-xs">
       {/* Header */}
-      <div className="p-3.5 border-b-2 border-white flex justify-between items-center bg-neutral-950">
+      <div className="p-3.5 border-b-2 border-white flex justify-between items-center bg-neutral-950 flex-shrink-0">
         <div className="flex items-center gap-2">
           <Terminal className="w-4 h-4 text-cyan-400" />
           <h2 className="font-pixel text-[11px] text-white">[ SEMANTIC_SEARCH ]</h2>
@@ -65,7 +65,7 @@ export default function SemanticSearchPanel({ repoId, onSelectResult, onClose }:
       </div>
 
       {/* Query Bar */}
-      <div className="p-3 border-b border-neutral-800 bg-neutral-950">
+      <div className="p-3 border-b border-neutral-800 bg-neutral-950 flex-shrink-0">
         <form onSubmit={handleSearch} className="flex gap-2">
           <input
             type="text"
@@ -84,7 +84,7 @@ export default function SemanticSearchPanel({ repoId, onSelectResult, onClose }:
         </form>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3 bg-black space-y-3">
+      <div className="flex-1 min-h-0 overflow-y-auto p-3 bg-black space-y-3">
         {!searchTerm && !isLoading && (
           <div className="p-6 text-center text-neutral-500 text-xs space-y-2">
             <p>[ ENTER_NATURAL_LANGUAGE_QUERY ]</p>
