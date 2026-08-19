@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql+asyncpg://archon:archon_secret@localhost:5432/archon"
     NEO4J_URI: str = "bolt://localhost:7687"
     NEO4J_USER: str = "neo4j"
+    NEO4J_USERNAME: Optional[str] = None  # Alias for NEO4J_USER
     NEO4J_PASSWORD: str = "neo4j_secret"
     NEO4J_DATABASE: str = "neo4j"  # AuraDB uses 'neo4j' as default; set to instance name if needed
     

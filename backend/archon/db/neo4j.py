@@ -11,11 +11,15 @@ class Neo4jConnectionManager:
 
     def connect(self):
         try:
+            user = (settings.NEO4J_USERNAME or settings.NEO4J_USER or "neo4j").strip()
+            password = (settings.NEO4J_PASSWORD or "").strip()
+            uri = (settings.NEO4J_URI or "").strip()
+            
             self.driver = AsyncGraphDatabase.driver(
-                settings.NEO4J_URI,
-                auth=(settings.NEO4J_USER, settings.NEO4J_PASSWORD),
+                uri,
+                auth=(user, password),
             )
-            logger.info("neo4j_connected", uri=settings.NEO4J_URI, database=settings.NEO4J_DATABASE)
+            logger.info("neo4j_connected", uri=uri, user=user, database=settings.NEO4J_DATABASE)
         except Exception as e:
             logger.error("neo4j_connection_failed", error=str(e))
             raise
@@ -24,7 +28,8 @@ class Neo4jConnectionManager:
         """Open a session on the configured database."""
         if not self.driver:
             self.connect()
-        return self.driver.session(database=settings.NEO4J_DATABASE, **kwargs)
+        db_name = (settings.NEO4J_DATABASE or "neo4j").strip()
+        return self.driver.session(database=db_name, **kwargs)
 
     async def close(self):
         if self.driver:
