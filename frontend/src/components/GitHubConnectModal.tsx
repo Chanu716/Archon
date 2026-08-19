@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Github, Lock, Globe, Star, Search, X, RefreshCw, Zap, AlertTriangle } from 'lucide-react'
+import { GitBranch, Lock, Globe, Star, Search, X, RefreshCw, Zap, AlertTriangle } from 'lucide-react'
 
 interface GitHubRepo {
   id: number
@@ -101,7 +101,7 @@ export default function GitHubConnectModal({ onClose, onImport, githubToken }: G
         {!githubToken ? (
           /* Not connected state */
           <div className="flex-1 flex flex-col items-center justify-center gap-6 p-10">
-            <Github className="w-12 h-12 text-neutral-600" />
+            <GitBranch className="w-12 h-12 text-neutral-600" />
             <div className="text-center space-y-2">
               <p className="font-pixel text-[11px] text-white">CONNECT YOUR GITHUB ACCOUNT</p>
               <p className="text-neutral-500 text-[11px] leading-relaxed">
@@ -113,7 +113,7 @@ export default function GitHubConnectModal({ onClose, onImport, githubToken }: G
               onClick={handleConnect}
               className="flex items-center gap-2 bg-white text-black px-6 py-2.5 font-pixel text-[11px] hover:bg-cyan-400 transition border-2 border-white shadow-pixel-sm"
             >
-              <Github className="w-4 h-4" />
+              <GitBranch className="w-4 h-4" />
               AUTHORIZE WITH GITHUB
             </button>
             <p className="text-neutral-600 text-[10px]">

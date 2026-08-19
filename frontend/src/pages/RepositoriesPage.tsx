@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { api } from '@/api/client'
 import type { Repository } from '@/types'
-import { Terminal, Plus, GitBranch, Box, Activity, CheckCircle, Clock, Github, CheckCheck } from 'lucide-react'
+import { Terminal, Plus, GitBranch, Box, Activity, CheckCircle, Clock } from 'lucide-react'
 import GitHubConnectModal from '@/components/GitHubConnectModal'
 
 export default function RepositoriesPage() {
@@ -138,7 +138,7 @@ export default function RepositoriesPage() {
                   : 'border-neutral-600 text-neutral-400 hover:border-white hover:text-white'
               }`}
             >
-              {githubToken ? <CheckCheck className="w-3 h-3" /> : <Github className="w-3 h-3" />}
+              {githubToken ? <CheckCircle className="w-3 h-3" /> : <GitBranch className="w-3 h-3" />}
               {githubToken ? 'GITHUB_CONNECTED' : 'CONNECT_GITHUB'}
             </button>
           </div>
