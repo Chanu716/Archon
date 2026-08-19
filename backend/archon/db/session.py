@@ -19,6 +19,11 @@ engine = create_async_engine(
     max_overflow=5,
     pool_pre_ping=True,  # Auto-reconnect on dropped connections
     pool_recycle=300,    # Recycle connections every 5 min to avoid stale sockets
+    connect_args={
+        # Required for Supabase session pooler (PgBouncer):
+        # disables named prepared statements which PgBouncer doesn't support
+        "statement_cache_size": 0,
+    },
 )
 
 async_session_factory = async_sessionmaker(
