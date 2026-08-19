@@ -109,15 +109,19 @@ class DummyEmbeddingProvider(EmbeddingProvider):
 
 def get_embedding_provider() -> EmbeddingProvider:
     """Factory to get the configured embedding provider."""
-    provider_name = settings.EMBEDDING_PROVIDER.lower() if hasattr(settings, "EMBEDDING_PROVIDER") and settings.EMBEDDING_PROVIDER else "ollama"
+    provider_name = (settings.EMBEDDING_PROVIDER or "").lower()
     
-    if provider_name == "gemini" and settings.GEMINI_API_KEY:
-        return GeminiEmbeddingProvider()
-    elif provider_name == "ollama":
-        return OllamaEmbeddingProvider()
-    elif provider_name == "dummy":
-        return DummyEmbeddingProvider()
-    else:
+    if provider_name == "gemini" or (settings.GEMINI_API_KEY and provider_name != "dummy" and provider_name != "ollama_forced"):
         if settings.GEMINI_API_KEY:
             return GeminiEmbeddingProvider()
+    if provider_name == "ollama":
+        # If running in cloud where localhost Ollama doesn't exist, fall back to Gemini if key exists
+        if settings.GEMINI_API_KEY:
+            return GeminiEmbeddingProvider()
+        return OllamaEmbeddingProvider()
+    if provider_name == "dummy":
         return DummyEmbeddingProvider()
+    
+    if settings.GEMINI_API_KEY:
+        return GeminiEmbeddingProvider()
+    return DummyEmbeddingProvider()

@@ -11,6 +11,7 @@ router = APIRouter()
 
 
 @router.get("/repositories/{repository_id}/search")
+@router.get("/repositories/{repository_id}/search/semantic")
 async def semantic_search(
     repository_id: uuid.UUID,
     q: str = Query(..., description="Natural language search query"),
