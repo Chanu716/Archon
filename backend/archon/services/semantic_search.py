@@ -107,15 +107,52 @@ class SemanticSearchService:
         result = await self.db.execute(stmt)
         embeddings = result.scalars().all()
         
-        return [
-            {
-                "entity": emb.entity_id,
-                "entity_type": emb.entity_type,
-                "file": emb.file_path,
-                "name": emb.entity_id,
-                "similarity": 0.85,
-                "source_reference": emb.source_text,
-                "snapshot": str(emb.snapshot_id)
-            }
-            for emb in embeddings
-        ]
+        if embeddings:
+            return [
+                {
+                    "entity": emb.entity_id,
+                    "entity_type": emb.entity_type,
+                    "file": emb.file_path,
+                    "name": emb.entity_id,
+                    "similarity": 0.85,
+                    "source_reference": emb.source_text,
+                    "snapshot": str(emb.snapshot_id)
+                }
+                for emb in embeddings
+            ]
+
+        # 4. Final Fallback: Query Neo4j Knowledge Graph directly
+        try:
+            from archon.db.neo4j import neo4j_driver
+            neo4j_q = """
+            MATCH (n {snapshot_id: $snapshot_id})
+            WHERE (
+                toLower(coalesce(n.qualified_name, '')) CONTAINS toLower($q)
+                OR toLower(coalesce(n.name, '')) CONTAINS toLower($q)
+                OR toLower(coalesce(n.path, '')) CONTAINS toLower($q)
+                OR toLower(coalesce(n.docstring, '')) CONTAINS toLower($q)
+            )
+            AND NOT n:Repository
+            RETURN n, labels(n)[0] as type LIMIT $limit
+            """
+            async with neo4j_driver.session() as session:
+                res = await session.run(neo4j_q, snapshot_id=str(snapshot_id), q=query, limit=limit)
+                records = await res.data()
+                results = []
+                for r in records:
+                    node = r["n"]
+                    props = dict(node.items())
+                    name = props.get("name") or props.get("qualified_name") or props.get("path") or "Node"
+                    results.append({
+                        "entity": props.get("qualified_name") or name,
+                        "entity_type": r["type"],
+                        "file": props.get("path") or "",
+                        "name": name,
+                        "similarity": 0.88,
+                        "source_reference": props.get("docstring") or f"{r['type']}: {name}",
+                        "snapshot": str(snapshot_id)
+                    })
+                return results
+        except Exception as e:
+            logger.warning("neo4j_fallback_search_failed", error=str(e))
+            return []

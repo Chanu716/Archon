@@ -54,7 +54,7 @@ class AIAnalystService:
             )
             snapshot = result.scalars().first()
             if not snapshot:
-                yield '{"error": "No snapshot found."}'
+                yield {"error": "No snapshot found. Run analysis first."}
                 return
             snapshot_id = snapshot.id
 
@@ -96,7 +96,7 @@ class AIAnalystService:
                         # Budget exhausted
                         error_msg = f"Tool budget exhausted. Max {MAX_TOOL_CALLS_PER_QUERY} allowed."
                         logger.warning("analyst_tool_budget_exhausted", repo_id=str(repository_id))
-                        yield f'{{"trace": "⚠️ {error_msg}"}}'
+                        yield {"trace": f"⚠️ {error_msg}"}
                         bundle.evidence.append(EvidenceItem(
                             evidence_id=next_id(),
                             type="semantic",  # generic type for error
@@ -116,12 +116,11 @@ class AIAnalystService:
                         arguments = {}
                         
                     # Yield trace to frontend
-                    # Attempt to extract a target name from arguments for the trace message
                     target = arguments.get("entity_id") or arguments.get("relative_path") or arguments.get("file_path") or arguments.get("query") or ""
                     trace_msg = f"✓ Executing {tool_name}"
                     if target:
                         trace_msg += f" for {target}"
-                    yield f'{{"trace": "{trace_msg}"}}'
+                    yield {"trace": trace_msg}
                     
                     # Execute
                     result = await tool_registry.execute(tool_name, arguments, context_vars)
@@ -134,12 +133,14 @@ class AIAnalystService:
 
                     bundle.evidence.append(EvidenceItem(
                         evidence_id=next_id(),
-                        type="semantic",  # generic type mapping
+                        type="semantic",
                         repository_id=str(repository_id),
                         snapshot_id=str(snapshot_id),
                         source_reference=f"{tool_name}({target})",
                         content=content_str
                     ))
+                elif isinstance(chunk, dict) and "error" in chunk:
+                    yield chunk
                 elif isinstance(chunk, str):
                     if not final_response_started:
                         final_response_started = True

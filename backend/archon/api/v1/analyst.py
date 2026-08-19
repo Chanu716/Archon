@@ -39,14 +39,18 @@ async def analyst_query(
                 question=payload.question,
                 snapshot_id=payload.snapshot_id,
             ):
-                if isinstance(chunk, str):
-                    # Could be raw text or a JSON blob from the LLM
-                    # Wrap it into SSE content event
+                if isinstance(chunk, dict):
+                    yield f"data: {json.dumps(chunk)}\n\n"
+                elif isinstance(chunk, str):
+                    try:
+                        parsed = json.loads(chunk)
+                        if isinstance(parsed, dict) and ("trace" in parsed or "error" in parsed or "content" in parsed):
+                            yield f"data: {json.dumps(parsed)}\n\n"
+                            continue
+                    except Exception:
+                        pass
                     data = json.dumps({"content": chunk})
                     yield f"data: {data}\n\n"
-                elif isinstance(chunk, dict):
-                    # Already a structured dict (trace, error, etc.)
-                    yield f"data: {json.dumps(chunk)}\n\n"
         except Exception as e:
             yield f'data: {json.dumps({"error": str(e)})}\n\n'
         finally:
