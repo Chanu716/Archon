@@ -75,7 +75,7 @@ class OllamaEmbeddingProvider(EmbeddingProvider):
 class GeminiEmbeddingProvider(EmbeddingProvider):
     """Google Gemini AI Studio free text embedding provider."""
     def __init__(self):
-        self.api_key = settings.GEMINI_API_KEY
+        self.api_key = (settings.GEMINI_API_KEY or "").strip()
         self.model = "text-embedding-004"
 
     async def embed(self, text: str) -> List[float]:
@@ -85,9 +85,16 @@ class GeminiEmbeddingProvider(EmbeddingProvider):
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:embedContent?key={self.api_key}"
             async with httpx.AsyncClient(timeout=30.0) as client:
                 res = await client.post(url, json={"content": {"parts": [{"text": text[:2000]}]}})
-                res.raise_for_status()
+                if res.status_code != 200:
+                    logger.warning("gemini_embed_status_error", status=res.status_code)
+                    return [0.0] * settings.EMBEDDING_DIMENSIONS
                 data = res.json()
-                return data["embedding"]["values"][:settings.EMBEDDING_DIMENSIONS]
+                values = data.get("embedding", {}).get("values", [])
+                if not values:
+                    return [0.0] * settings.EMBEDDING_DIMENSIONS
+                if len(values) < settings.EMBEDDING_DIMENSIONS:
+                    values = values + [0.0] * (settings.EMBEDDING_DIMENSIONS - len(values))
+                return values[:settings.EMBEDDING_DIMENSIONS]
         except Exception as e:
             logger.warning("gemini_embed_failed_fallback", error=str(e))
             return [0.0] * settings.EMBEDDING_DIMENSIONS

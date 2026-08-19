@@ -100,7 +100,7 @@ export default function SemanticSearchPanel({ repoId, onSelectResult, onClose }:
 
         {error && (
           <div className="p-3 border border-red-500 bg-red-950/40 text-red-400 text-xs">
-            [ERROR] Semantic search failed. Check embedding provider config.
+            [ERROR] {(error as any)?.response?.data?.detail || (error as Error)?.message || 'Semantic search failed. Check embedding provider config.'}
           </div>
         )}
 
