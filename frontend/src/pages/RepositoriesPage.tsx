@@ -29,6 +29,8 @@ export default function RepositoriesPage() {
     }
   }
 
+  const repoList = Array.isArray(repos) ? repos : []
+
   return (
     <div className="min-h-screen bg-black text-white p-6 md:p-10 font-mono crt-grid">
       {/* Top Retro Terminal Header */}
@@ -53,7 +55,7 @@ export default function RepositoriesPage() {
             <span className="font-pixel text-cyan-400 text-[10px]">CORE: ONLINE</span>
           </div>
           <div className="border border-neutral-800 bg-neutral-950 px-3 py-1.5 text-neutral-400">
-            TOTAL_REPOS: <strong className="text-white font-mono">{repos?.length ?? 0}</strong>
+            TOTAL_REPOS: <strong className="text-white font-mono">{repoList.length}</strong>
           </div>
         </div>
       </div>
@@ -103,20 +105,20 @@ export default function RepositoriesPage() {
         <div className="space-y-4">
           <div className="flex items-center justify-between text-xs font-pixel text-neutral-400 px-1">
             <span>REGISTERED_TARGETS</span>
-            <span>COUNT: {repos?.length ?? 0}</span>
+            <span>COUNT: {repoList.length}</span>
           </div>
 
           {isLoading ? (
             <div className="pixel-box p-12 text-center text-cyan-400 font-pixel text-xs animate-pulse">
               [ SCANNING REPOSITORY VAULT… ]
             </div>
-          ) : !repos || repos.length === 0 ? (
+          ) : repoList.length === 0 ? (
             <div className="pixel-box p-12 text-center text-neutral-500 font-mono text-xs">
               No repositories registered yet. Ingest a GitHub URL above to begin code graph analysis.
             </div>
           ) : (
             <div className="grid gap-4">
-              {repos.map(repo => {
+              {repoList.map(repo => {
                 const isAnalyzed = !!(repo.has_snapshot || repo.last_analyzed_at)
                 return (
                   <div

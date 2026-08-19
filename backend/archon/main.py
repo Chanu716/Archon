@@ -13,6 +13,25 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("starting_archon_api", version=settings.ARCHON_VERSION)
     try:
+        from archon.models.base import Base
+        import archon.models.repository
+        import archon.models.analysis_job
+        import archon.models.metrics
+        import archon.models.embedding
+        import archon.models.git
+        import archon.models.evolution
+        import archon.models.impact
+        import archon.models.investigation
+        from archon.db.session import engine
+        from sqlalchemy import text
+        async with engine.begin() as conn:
+            await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("postgres_tables_ready")
+    except Exception as e:
+        logger.warning("db_init_warning", error=str(e))
+
+    try:
         neo4j_driver.connect()
         logger.info("neo4j_ready")
     except Exception as e:

@@ -18,6 +18,7 @@ export default function AnalystPanel({ repoId, onClose }: AnalystPanelProps) {
   const [parsedCitations, setParsedCitations] = useState<string[]>([])
   const [traces, setTraces] = useState<string[]>([])
   
+  const [provider, setProvider] = useState<'groq' | 'gemini' | 'openrouter' | 'ollama'>('groq')
   const [error, setError] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
 
@@ -34,7 +35,7 @@ export default function AnalystPanel({ repoId, onClose }: AnalystPanelProps) {
       if (fullObj.answer) setParsedAnswer(fullObj.answer)
       if (fullObj.confidence) setParsedConfidence(fullObj.confidence)
       if (fullObj.referenced_evidence_ids) setParsedCitations(fullObj.referenced_evidence_ids)
-    } catch (e) {
+    } catch {
       const answerMatch = streamedRawJson.match(/"answer"\s*:\s*"([^]*)/)
       if (answerMatch) {
         let partialText = answerMatch[1]
@@ -65,7 +66,7 @@ export default function AnalystPanel({ repoId, onClose }: AnalystPanelProps) {
       const response = await fetch(`${apiBase}/repositories/${repoId}/analyst/query`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question })
+        body: JSON.stringify({ question, provider })
       })
 
       if (!response.ok) {
@@ -83,39 +84,36 @@ export default function AnalystPanel({ repoId, onClose }: AnalystPanelProps) {
       while (!done) {
         const { value, done: doneReading } = await reader.read()
         done = doneReading
-        if (value) {
-          const chunk = decoder.decode(value, { stream: true })
-          const lines = chunk.split('\n')
-          
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              const dataStr = line.substring(6)
-              if (dataStr.trim() === '[DONE]') {
-                done = true
-                break
+        const chunkValue = decoder.decode(value, { stream: true })
+        buffer += chunkValue
+
+        const lines = buffer.split('\n\n')
+        buffer = lines.pop() || ''
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const dataStr = line.slice(6)
+            if (dataStr === '[DONE]') {
+              done = true
+              break
+            }
+            try {
+              const data = JSON.parse(dataStr)
+              if (data.trace) {
+                setTraces(prev => [...prev, data.trace])
+              } else if (data.content) {
+                setStreamedRawJson(prev => prev + data.content)
+              } else if (data.error) {
+                setError(data.error)
               }
-              try {
-                const dataObj = JSON.parse(dataStr)
-                if (dataObj.error) {
-                  setError(dataObj.error)
-                  break
-                }
-                if (dataObj.trace) {
-                  setTraces(prev => [...prev, dataObj.trace])
-                }
-                if (dataObj.content) {
-                  buffer += dataObj.content
-                  setStreamedRawJson(buffer)
-                }
-              } catch (err) {
-                console.error("Failed to parse SSE data chunk", dataStr)
-              }
+            } catch {
+              setStreamedRawJson(prev => prev + dataStr)
             }
           }
         }
       }
     } catch (err: any) {
-      setError(err.message)
+      setError(err.message || 'An error occurred during analysis')
     } finally {
       setIsAnalyzing(false)
     }
@@ -124,17 +122,35 @@ export default function AnalystPanel({ repoId, onClose }: AnalystPanelProps) {
   return (
     <div className="w-96 bg-black border-l-2 border-white flex flex-col h-full overflow-hidden absolute right-0 z-30 shadow-pixel font-mono text-xs">
       {/* Header */}
-      <div className="p-3.5 border-b-2 border-white flex justify-between items-center bg-neutral-950">
-        <div className="flex items-center gap-2">
-          <Zap className="w-4 h-4 text-cyan-400" />
-          <h2 className="font-pixel text-[11px] text-white">[ AI_CODE_ANALYST ]</h2>
+      <div className="p-3 border-b-2 border-white flex flex-col gap-2 bg-neutral-950">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <Zap className="w-4 h-4 text-cyan-400" />
+            <h2 className="font-pixel text-[11px] text-white">[ AI_CODE_ANALYST ]</h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-neutral-400 hover:text-white p-1 border border-neutral-800 hover:border-white transition flex-shrink-0 text-xs"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
         </div>
-        <button
-          onClick={onClose}
-          className="text-neutral-400 hover:text-white p-1 border border-neutral-800 hover:border-white transition flex-shrink-0 text-xs"
-        >
-          <X className="w-3.5 h-3.5" />
-        </button>
+
+        {/* Model Selector */}
+        <div className="flex items-center gap-2 pt-1 border-t border-neutral-800">
+          <Bot className="w-3 h-3 text-cyan-400 flex-shrink-0" />
+          <select
+            value={provider}
+            onChange={(e) => setProvider(e.target.value as any)}
+            className="w-full pixel-input text-[10px] font-pixel px-2 py-1 bg-black text-cyan-400 border-neutral-700 focus:outline-none focus:border-cyan-400 cursor-pointer"
+            title="Select AI Model"
+          >
+            <option value="groq">GROQ :: LLAMA-3.1-70B (FREE)</option>
+            <option value="gemini">GEMINI :: 2.0-FLASH (FREE)</option>
+            <option value="openrouter">OPENROUTER :: LLAMA-3.3 (FREE)</option>
+            <option value="ollama">OLLAMA :: LOCAL_LLAMA3</option>
+          </select>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-black">

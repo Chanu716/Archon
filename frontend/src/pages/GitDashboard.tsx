@@ -81,6 +81,12 @@ export default function GitDashboard() {
     )
   }
 
+  const hotspotList = Array.isArray(hotspots) ? hotspots : []
+  const recentFileList = Array.isArray(recentFiles) ? recentFiles : []
+  const churnedFileList = Array.isArray(churnedFiles) ? churnedFiles : []
+  const contributorList = Array.isArray(contributors) ? contributors : []
+  const commitList = Array.isArray(commits) ? commits : []
+
   return (
     <div className="min-h-screen bg-black text-white p-6 md:p-10 font-mono crt-grid">
       {/* Top Header */}
@@ -126,10 +132,10 @@ export default function GitDashboard() {
             <span className="text-[10px] text-neutral-500 font-mono">Heuristic v1</span>
           </div>
           <div className="divide-y divide-neutral-900">
-            {(!hotspots || hotspots.length === 0) && (
+            {hotspotList.length === 0 && (
               <div className="py-4 text-xs text-neutral-500">No critical risk hotspots detected.</div>
             )}
-            {hotspots?.map((h: any) => (
+            {hotspotList.map((h: any) => (
               <div key={h.file_path} className="py-2.5 flex items-center justify-between hover:bg-neutral-950">
                 <div className="font-mono text-xs text-neutral-200 truncate max-w-lg">{h.file_path}</div>
                 <RiskBadge label={h.risk_label} score={h.risk_score} />
@@ -145,7 +151,7 @@ export default function GitDashboard() {
               [ RECENTLY_CHANGED_FILES ]
             </div>
             <div className="divide-y divide-neutral-900">
-              {recentFiles?.map((f: any) => (
+              {recentFileList.map((f: any) => (
                 <div key={f.file_path} className="py-2.5 flex items-center justify-between">
                   <div className="truncate max-w-[240px]">
                     <div className="font-mono text-xs text-neutral-200 truncate" title={f.file_path}>{f.file_path}</div>
@@ -166,7 +172,7 @@ export default function GitDashboard() {
               [ MOST_CHURNED_FILES ]
             </div>
             <div className="divide-y divide-neutral-900">
-              {churnedFiles?.map((f: any) => (
+              {churnedFileList.map((f: any) => (
                 <div key={f.file_path} className="py-2.5 flex items-center justify-between">
                   <div className="truncate max-w-[240px]">
                     <div className="font-mono text-xs text-neutral-200 truncate" title={f.file_path}>{f.file_path}</div>
@@ -201,7 +207,7 @@ export default function GitDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-900 text-neutral-300">
-                {contributors?.map((c: any) => (
+                {contributorList.map((c: any) => (
                   <tr key={c.author_email} className="hover:bg-neutral-950">
                     <td className="py-2.5 px-3 font-medium text-white">
                       {c.author_name}
@@ -225,7 +231,7 @@ export default function GitDashboard() {
             <span>[ RECENT_COMMITS ]</span>
           </div>
           <div className="divide-y divide-neutral-900">
-            {commits?.map((c: any) => (
+            {commitList.map((c: any) => (
               <div key={c.sha} className="py-2.5 hover:bg-neutral-950">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="font-mono text-cyan-400 text-xs font-bold">{c.sha.substring(0, 8)}</span>

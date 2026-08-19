@@ -15,6 +15,8 @@ router = APIRouter()
 class AnalystQueryRequest(BaseModel):
     question: str
     snapshot_id: Optional[uuid.UUID] = None
+    provider: Optional[str] = None
+    model: Optional[str] = None
 
 
 @router.post("/repositories/{repository_id}/analyst/query")
@@ -28,7 +30,7 @@ async def analyst_query(
     Returns an SSE stream of JSON deltas.
     Each chunk is: data: {"content": "..."}\n\n  or  data: {"trace": "..."}\n\n
     """
-    service = AIAnalystService(db)
+    service = AIAnalystService(db, provider_name=payload.provider, model=payload.model)
 
     async def event_stream():
         try:

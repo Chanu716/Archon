@@ -146,58 +146,65 @@ class OpenAICompatibleProvider(LLMProvider):
 
 
 class OpenRouterProvider(OpenAICompatibleProvider):
-    def __init__(self):
+    def __init__(self, model: str = None):
         if not settings.OPENROUTER_API_KEY:
-            raise ValueError("OPENROUTER_API_KEY is not configured but OpenRouter provider was selected.")
+            raise ValueError("OPENROUTER_API_KEY is not configured in environment.")
         super().__init__(
             base_url="https://openrouter.ai/api/v1",
             api_key=settings.OPENROUTER_API_KEY,
-            model=settings.LLM_MODEL or "openrouter/free"
+            model=model or settings.LLM_MODEL or "meta-llama/llama-3.3-70b-instruct:free"
         )
 
 
 class GeminiProvider(OpenAICompatibleProvider):
-    def __init__(self):
+    def __init__(self, model: str = None):
         if not settings.GEMINI_API_KEY:
-            raise ValueError("GEMINI_API_KEY is not configured but Gemini provider was selected.")
+            raise ValueError("GEMINI_API_KEY is not configured in environment.")
         super().__init__(
             base_url="https://generativelanguage.googleapis.com/v1beta/openai",
             api_key=settings.GEMINI_API_KEY,
-            model=settings.LLM_MODEL or "gemini-2.0-flash-exp"
+            model=model or settings.LLM_MODEL or "gemini-2.0-flash-exp"
         )
 
 
 class GroqProvider(OpenAICompatibleProvider):
-    def __init__(self):
+    def __init__(self, model: str = None):
         if not settings.GROQ_API_KEY:
-            raise ValueError("GROQ_API_KEY is not configured but Groq provider was selected.")
+            raise ValueError("GROQ_API_KEY is not configured in environment.")
         super().__init__(
             base_url="https://api.groq.com/openai/v1",
             api_key=settings.GROQ_API_KEY,
-            model=settings.LLM_MODEL or "llama-3.1-70b-versatile"
+            model=model or settings.LLM_MODEL or "llama-3.1-70b-versatile"
         )
 
 class OllamaProvider(OpenAICompatibleProvider):
-    def __init__(self):
+    def __init__(self, model: str = None):
         super().__init__(
             base_url=f"{settings.OLLAMA_BASE_URL.rstrip('/')}/v1",
             api_key="ollama", # Some clients complain if API key is missing
-            model=settings.LLM_MODEL or "llama3"
+            model=model or settings.LLM_MODEL or "llama3"
         )
 
-def get_llm_provider() -> LLMProvider:
-    provider_name = settings.LLM_PROVIDER.lower() if hasattr(settings, "LLM_PROVIDER") and settings.LLM_PROVIDER else "ollama"
+def get_llm_provider(provider_name: str = None, model: str = None) -> LLMProvider:
+    name = (provider_name or settings.LLM_PROVIDER or "groq").lower()
     
-    if provider_name == "openrouter":
-        provider = OpenRouterProvider()
-    elif provider_name == "gemini":
-        provider = GeminiProvider()
-    elif provider_name == "groq":
-        provider = GroqProvider()
-    elif provider_name == "ollama":
-        provider = OllamaProvider()
+    if name == "openrouter":
+        provider = OpenRouterProvider(model=model)
+    elif name == "gemini":
+        provider = GeminiProvider(model=model)
+    elif name == "groq":
+        provider = GroqProvider(model=model)
+    elif name == "ollama":
+        provider = OllamaProvider(model=model)
     else:
-        raise ValueError(f"Unsupported LLM provider: {provider_name}")
+        if settings.GROQ_API_KEY:
+            provider = GroqProvider(model=model)
+        elif settings.GEMINI_API_KEY:
+            provider = GeminiProvider(model=model)
+        elif settings.OPENROUTER_API_KEY:
+            provider = OpenRouterProvider(model=model)
+        else:
+            provider = OllamaProvider(model=model)
         
-    logger.info("provider_initialized", provider=provider_name)
+    logger.info("provider_initialized", provider=name)
     return provider

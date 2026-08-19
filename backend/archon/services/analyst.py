@@ -37,9 +37,9 @@ MAX_TOOL_CALLS_PER_QUERY = 10
 MAX_ITERATIONS = 5
 
 class AIAnalystService:
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: AsyncSession, provider_name: str = None, model: str = None):
         self.db = db
-        self.provider = get_llm_provider()
+        self.provider = get_llm_provider(provider_name=provider_name, model=model)
 
     async def query(self, repository_id: uuid.UUID, question: str, snapshot_id: uuid.UUID = None):
         """
