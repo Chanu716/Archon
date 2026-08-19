@@ -173,7 +173,7 @@ class GroqProvider(OpenAICompatibleProvider):
     def __init__(self, model: str = None):
         if not settings.GROQ_API_KEY:
             raise ValueError("GROQ_API_KEY is not configured in environment.")
-        resolved_model = model or (settings.LLM_MODEL if settings.LLM_MODEL and settings.LLM_MODEL not in ("llama3", "ollama") else None) or "llama-3.3-70b-versatile"
+        resolved_model = model or (settings.LLM_MODEL if settings.LLM_MODEL and settings.LLM_MODEL not in ("llama3", "ollama") else None) or "llama3-70b-8192"
         super().__init__(
             base_url="https://api.groq.com/openai/v1",
             api_key=settings.GROQ_API_KEY.strip(),

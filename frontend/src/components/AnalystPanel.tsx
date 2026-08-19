@@ -145,7 +145,7 @@ export default function AnalystPanel({ repoId, onClose }: AnalystPanelProps) {
             className="w-full pixel-input text-[10px] font-pixel px-2 py-1 bg-black text-cyan-400 border-neutral-700 focus:outline-none focus:border-cyan-400 cursor-pointer"
             title="Select AI Model"
           >
-            <option value="groq">GROQ :: LLAMA-3.3-70B (FREE)</option>
+            <option value="groq">GROQ :: LLAMA-3-70B (FREE)</option>
             <option value="gemini">GEMINI :: 2.0-FLASH (FREE)</option>
             <option value="openrouter">OPENROUTER :: LLAMA-3.3 (FREE)</option>
             <option value="ollama">OLLAMA :: LOCAL_LLAMA3</option>

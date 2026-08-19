@@ -55,7 +55,7 @@ export default function IntelligenceWorkbench() {
       let url = `${API_BASE}/${repoId}/investigation/${encodeURIComponent(entityId!)}/impact`
       if (snapshotId) url += `?snapshot_id=${snapshotId}`
       const res = await fetch(url)
-      if (res.status === 404) return null
+      if (!res.ok) return { direct_callers: 0, indirect_callers: 0, direct_callees: 0, indirect_callees: 0, affected_entities: 0, graph: { nodes: [], edges: [] } }
       return res.json()
     },
     enabled: !!base,
@@ -68,7 +68,7 @@ export default function IntelligenceWorkbench() {
       let url = `${API_BASE}/${repoId}/investigation/${encodeURIComponent(entityId!)}/evolution`
       if (snapshotId) url += `?snapshot_id=${snapshotId}`
       const res = await fetch(url)
-      if (res.status === 404) return null
+      if (!res.ok) return { lifecycle: null, relationship_changes: [], drift_findings: [] }
       return res.json()
     },
     enabled: !!base,
@@ -286,27 +286,27 @@ export default function IntelligenceWorkbench() {
                       <span className="pixel-tag-cyan">{evolution.lifecycle.state}</span>
                     </div>
                   )}
-                  {evolution.drift_findings.length > 0 && (
+                  {(evolution.drift_findings ?? []).length > 0 && (
                     <div className="space-y-1.5">
                       <span className="font-pixel text-[9px] text-red-400 uppercase">[ DRIFT_ALERTS ]</span>
-                      {evolution.drift_findings.map((d, i) => (
+                      {(evolution.drift_findings ?? []).map((d, i) => (
                         <div key={i} className="border border-red-500/50 bg-red-950/20 p-2 text-red-300 text-[11px]">
                           {d.description}
                         </div>
                       ))}
                     </div>
                   )}
-                  {evolution.relationship_changes.length > 0 && (
+                  {(evolution.relationship_changes ?? []).length > 0 && (
                     <div className="space-y-1">
                       <span className="font-pixel text-[9px] text-neutral-500 uppercase">[ EDGE_DELTA ]</span>
-                      {evolution.relationship_changes.map((r, i) => (
+                      {(evolution.relationship_changes ?? []).map((r, i) => (
                         <div key={i} className="text-[11px] font-mono text-neutral-300 truncate">
                           <span className="text-cyan-400">[{r.state}]</span> {r.source_qname} → {r.target_qname}
                         </div>
                       ))}
                     </div>
                   )}
-                  {evolution.drift_findings.length === 0 && evolution.relationship_changes.length === 0 && (
+                  {(evolution.drift_findings ?? []).length === 0 && (evolution.relationship_changes ?? []).length === 0 && (
                     <div className="text-neutral-500 text-xs">No structural mutations in this snapshot.</div>
                   )}
                 </div>

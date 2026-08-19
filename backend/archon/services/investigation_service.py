@@ -215,61 +215,68 @@ class InvestigationService:
         )
 
     async def get_impact(self, context: InvestigationContext) -> ImpactContext:
-        impact_svc = ImpactService(context.repository_id, context.snapshot_id)
-        # analyze_impact takes a qualified_name or path.
-        lookup = context.qualified_name or context.file_path
-        
-        if not lookup:
-            return ImpactContext(graph={"nodes": [], "edges": []})
-            
-        data = await impact_svc.analyze_impact(lookup, max_depth=3)
-        
-        return ImpactContext(
-            direct_callers=data["summary"]["direct_callers"],
-            indirect_callers=data["summary"]["indirect_callers"],
-            direct_callees=data["summary"]["direct_callees"],
-            indirect_callees=data["summary"]["indirect_callees"],
-            affected_entities=data["summary"]["affected_entities"],
-            graph=data["graph"]
-        )
+        try:
+            impact_svc = ImpactService(
+                repository_id=context.repository_id,
+                snapshot_id=context.snapshot_id
+            )
+            result = await impact_svc.analyze(context.entity_id, direction="both")
+            summary = result.summary
+            return ImpactContext(
+                direct_callers=summary.direct_callers,
+                indirect_callers=summary.indirect_callers,
+                direct_callees=summary.direct_callees,
+                indirect_callees=summary.indirect_callees,
+                affected_entities=(
+                    summary.direct_callers + summary.indirect_callers +
+                    summary.direct_callees + summary.indirect_callees
+                ),
+                graph={"nodes": [], "edges": []}
+            )
+        except Exception as e:
+            logger.warning("get_impact_failed", error=str(e), entity=context.entity_id)
+            return ImpactContext(
+                direct_callers=0, indirect_callers=0,
+                direct_callees=0, indirect_callees=0,
+                affected_entities=0, graph={"nodes": [], "edges": []}
+            )
 
     async def get_evolution(self, context: InvestigationContext) -> EvolutionContext:
-        evo_svc = EvolutionService(self.db, context.repository_id)
-        # We need timeline
-        timeline = await evo_svc.get_timeline()
-        if not timeline:
-            return EvolutionContext()
-            
-        # Try to compare with previous snapshot
-        current_idx = next((i for i, node in enumerate(timeline) if node.snapshot_id == context.snapshot_id), -1)
-        if current_idx < 0:
-            return EvolutionContext()
-            
-        # Trend
-        if current_idx < len(timeline) - 1:
-            prev_snapshot_id = timeline[current_idx + 1].snapshot_id
-            try:
-                comp = await evo_svc.compare_snapshots(prev_snapshot_id, context.snapshot_id)
-                # Filter for this entity
-                lookup = context.qualified_name or context.file_path
-                if not lookup:
-                    return EvolutionContext()
-                    
-                lifecycle = next((e for e in comp.entities if e.qualified_name == lookup), None)
-                rels = [r for r in comp.relationships if r.source_qname == lookup or r.target_qname == lookup]
-                drifts = [d for d in comp.drift_findings if d.entity_name == lookup]
+        try:
+            evo_svc = EvolutionService(self.db, context.repository_id)
+            timeline = await evo_svc.get_timeline()
+            if not timeline:
+                return EvolutionContext(lifecycle=None, relationship_changes=[], drift_findings=[])
                 
-                return EvolutionContext(
-                    lifecycle=lifecycle,
-                    relationship_changes=rels,
-                    drift_findings=drifts
-                )
-            except Exception as e:
-                logger.warning("evolution_compare_failed", error=str(e))
-                return EvolutionContext()
-        else:
-            # First snapshot, no previous to compare
-            return EvolutionContext()
+            current_idx = next((i for i, node in enumerate(timeline) if node.snapshot_id == context.snapshot_id), -1)
+            if current_idx < 0:
+                return EvolutionContext(lifecycle=None, relationship_changes=[], drift_findings=[])
+                
+            if current_idx < len(timeline) - 1:
+                prev_snapshot_id = timeline[current_idx + 1].snapshot_id
+                try:
+                    comp = await evo_svc.compare_snapshots(prev_snapshot_id, context.snapshot_id)
+                    lookup = context.qualified_name or context.file_path
+                    if not lookup:
+                        return EvolutionContext(lifecycle=None, relationship_changes=[], drift_findings=[])
+                        
+                    lifecycle = next((e for e in comp.entities if e.qualified_name == lookup), None)
+                    rels = [r for r in comp.relationships if r.source_qname == lookup or r.target_qname == lookup]
+                    drifts = [d for d in comp.drift_findings if d.entity_name == lookup]
+                    
+                    return EvolutionContext(
+                        lifecycle=lifecycle,
+                        relationship_changes=rels,
+                        drift_findings=drifts
+                    )
+                except Exception as e:
+                    logger.warning("evolution_compare_failed", error=str(e))
+                    return EvolutionContext(lifecycle=None, relationship_changes=[], drift_findings=[])
+            else:
+                return EvolutionContext(lifecycle=None, relationship_changes=[], drift_findings=[])
+        except Exception as e:
+            logger.warning("get_evolution_outer_failed", error=str(e))
+            return EvolutionContext(lifecycle=None, relationship_changes=[], drift_findings=[])
 
     async def get_semantic(self, context: InvestigationContext) -> SemanticContext:
         sem_svc = SemanticSearchService(self.db)
