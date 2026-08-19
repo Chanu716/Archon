@@ -5,8 +5,10 @@ engine = create_async_engine(
     settings.DATABASE_URL,
     echo=settings.DEBUG,
     future=True,
-    pool_size=20,
-    max_overflow=10,
+    pool_size=5,        # Supabase free: max 10 connections total
+    max_overflow=5,
+    pool_pre_ping=True,  # Auto-reconnect on dropped connections
+    pool_recycle=300,    # Recycle connections every 5 min to avoid stale sockets
 )
 
 async_session_factory = async_sessionmaker(

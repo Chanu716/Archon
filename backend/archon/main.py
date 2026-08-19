@@ -1,5 +1,6 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 from archon.config import settings
 from archon.api.v1 import health, repositories, analysis, graph, metrics, impact, git, search, analyst, evolution, investigation
@@ -61,6 +62,7 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# CORS must be added BEFORE exception handlers so it wraps everything
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_get_allowed_origins(),
@@ -68,6 +70,22 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Catch-all handler that ensures CORS headers survive even on unhandled crashes."""
+    origin = request.headers.get("origin", "")
+    allowed = _get_allowed_origins()
+    headers = {}
+    if origin in allowed:
+        headers["Access-Control-Allow-Origin"] = origin
+        headers["Access-Control-Allow-Credentials"] = "true"
+    logger.error("unhandled_exception", path=request.url.path, error=str(exc))
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error", "error": str(exc)},
+        headers=headers,
+    )
 
 app.include_router(health.router, prefix="/api/v1", tags=["health"])
 app.include_router(repositories.router, prefix="/api/v1", tags=["repositories"])
