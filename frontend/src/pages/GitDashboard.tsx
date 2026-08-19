@@ -2,18 +2,19 @@ import { useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/api/client'
 import { formatDistanceToNow } from 'date-fns'
+import { GitBranch, GitCommit, Users, Flame, AlertCircle } from 'lucide-react'
 
 function RiskBadge({ label, score }: { label: string; score?: number }) {
   const colors: Record<string, string> = {
-    CRITICAL: 'bg-red-900/40 text-red-400 border border-red-700/40',
-    HIGH:     'bg-orange-900/40 text-orange-400 border border-orange-700/40',
-    MODERATE: 'bg-yellow-900/40 text-yellow-400 border border-yellow-700/40',
-    LOW:      'bg-green-900/40 text-green-400 border border-green-700/40',
+    CRITICAL: 'border-red-500 text-red-400 bg-red-950/60',
+    HIGH:     'border-orange-500 text-orange-400 bg-orange-950/60',
+    MODERATE: 'border-amber-500 text-amber-400 bg-amber-950/60',
+    LOW:      'border-green-500 text-green-400 bg-green-950/60',
   }
   
   return (
-    <span className={`text-xs px-2 py-0.5 rounded font-mono ${colors[label] || 'bg-gray-800 text-gray-500'}`}>
-      {label} {score !== undefined && `(${score.toFixed(2)})`}
+    <span className={`text-[10px] px-2 py-0.5 border font-pixel ${colors[label] || 'border-neutral-700 text-neutral-400'}`}>
+      [{label}] {score !== undefined && `(${score.toFixed(2)})`}
     </span>
   )
 }
@@ -58,144 +59,158 @@ export default function GitDashboard() {
   })
 
   if (overviewLoading) {
-    return <div className="p-8 text-gray-400">Loading Git Intelligence...</div>
+    return (
+      <div className="min-h-screen bg-black text-cyan-400 font-pixel p-12 flex items-center justify-center animate-pulse">
+        [ COMPUTING_GIT_HISTORY_MATRIX… ]
+      </div>
+    )
   }
 
   if (overview && !overview.git_available) {
     return (
-      <div className="p-8 max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold text-white mb-4">Git Intelligence</h1>
-        <div className="bg-yellow-900/20 border border-yellow-800 rounded p-4 text-yellow-300">
-          Git analysis is not available for this repository. It may have been imported from a non-Git source.
+      <div className="min-h-screen bg-black text-white p-8 font-mono crt-grid">
+        <div className="pixel-box p-6 border-amber-500 max-w-xl mx-auto text-center space-y-4">
+          <AlertCircle className="w-8 h-8 text-amber-400 mx-auto" />
+          <h2 className="font-pixel text-sm text-amber-400">[ GIT_ANALYSIS_NOT_AVAILABLE ]</h2>
+          <p className="text-xs text-neutral-400">Git analysis is not available for this target repository.</p>
+          <Link to={`/repositories/${repoId}/overview`} className="pixel-btn text-xs inline-block">
+            ← [ RETURN_TO_OVERVIEW ]
+          </Link>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="flex h-screen bg-gray-950 text-gray-100 flex-col overflow-y-auto">
-      {/* Header */}
-      <div className="p-4 border-b border-gray-800 flex items-center justify-between sticky top-0 bg-gray-950/80 backdrop-blur z-10">
-        <div className="flex items-center gap-4">
-          <Link to={`/repositories/${repoId}/overview`} className="text-gray-500 hover:text-white text-sm">← Back</Link>
-          <h1 className="text-xl font-bold text-white">Git Intelligence</h1>
-        </div>
-        <div className="text-sm text-gray-500 font-mono">
-          Snapshot Cutoff: {overview?.snapshot_commit_sha?.substring(0, 8)}
+    <div className="min-h-screen bg-black text-white p-6 md:p-10 font-mono crt-grid">
+      {/* Top Header */}
+      <div className="max-w-6xl mx-auto mb-8 border-b-2 border-white pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <Link
+            to={`/repositories/${repoId}/overview`}
+            className="text-xs text-neutral-400 hover:text-cyan-400 transition-colors inline-flex items-center gap-1 mb-2"
+          >
+            ← [ BACK_TO_OVERVIEW ]
+          </Link>
+          <div className="flex items-center gap-3">
+            <h1 className="font-pixel text-xl text-white tracking-wide">
+              GIT_INTELLIGENCE_MATRIX
+            </h1>
+            <span className="pixel-tag-cyan text-[10px]">
+              HEAD: {overview?.snapshot_commit_sha?.substring(0, 8) || 'N/A'}
+            </span>
+          </div>
         </div>
       </div>
 
-      <div className="p-6 max-w-6xl mx-auto w-full space-y-6">
-        
+      <div className="max-w-6xl mx-auto space-y-6">
         {/* Top metrics */}
-        <div className="grid grid-cols-4 gap-4">
-          <div className="bg-gray-900 border border-gray-800 rounded p-4">
-            <div className="text-sm text-gray-500 mb-1 uppercase tracking-wide font-semibold">Commits Analyzed</div>
-            <div className="text-2xl font-bold font-mono text-blue-400">{overview?.total_commits}</div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="pixel-box p-4">
+            <span className="text-[10px] text-neutral-500 font-pixel uppercase block mb-1">COMMITS_ANALYZED</span>
+            <div className="text-2xl font-bold font-mono text-cyan-400">{overview?.total_commits ?? 0}</div>
           </div>
-          <div className="bg-gray-900 border border-gray-800 rounded p-4">
-            <div className="text-sm text-gray-500 mb-1 uppercase tracking-wide font-semibold">Contributors</div>
-            <div className="text-2xl font-bold font-mono text-purple-400">{overview?.total_contributors}</div>
+          <div className="pixel-box p-4">
+            <span className="text-[10px] text-neutral-500 font-pixel uppercase block mb-1">CONTRIBUTORS</span>
+            <div className="text-2xl font-bold font-mono text-purple-400">{overview?.total_contributors ?? 0}</div>
           </div>
         </div>
 
         {/* Hotspots */}
-        <div className="bg-gray-900 border border-gray-800 rounded overflow-hidden">
-          <div className="px-4 py-3 border-b border-gray-800 flex justify-between items-center bg-gray-900/50">
-            <h2 className="font-semibold text-gray-200">Archon Risk Hotspots</h2>
-            <span className="text-xs text-gray-500">Based on Risk Heuristic v1 (Complexity + Coupling + Churn)</span>
+        <div className="pixel-box p-5">
+          <div className="flex justify-between items-center border-b border-neutral-800 pb-3 mb-4">
+            <div className="flex items-center gap-2 font-pixel text-xs text-amber-400">
+              <Flame className="w-4 h-4" />
+              <span>[ RISK_HOTSPOTS :: CHURN_COUPLING ]</span>
+            </div>
+            <span className="text-[10px] text-neutral-500 font-mono">Heuristic v1</span>
           </div>
-          <div className="divide-y divide-gray-800">
-            {hotspots?.length === 0 && (
-              <div className="p-4 text-sm text-gray-500">No critical or high-risk files detected.</div>
+          <div className="divide-y divide-neutral-900">
+            {(!hotspots || hotspots.length === 0) && (
+              <div className="py-4 text-xs text-neutral-500">No critical risk hotspots detected.</div>
             )}
             {hotspots?.map((h: any) => (
-              <div key={h.file_path} className="p-4 flex items-center justify-between hover:bg-gray-800/50">
-                <div className="font-mono text-sm text-gray-300">{h.file_path}</div>
+              <div key={h.file_path} className="py-2.5 flex items-center justify-between hover:bg-neutral-950">
+                <div className="font-mono text-xs text-neutral-200 truncate max-w-lg">{h.file_path}</div>
                 <RiskBadge label={h.risk_label} score={h.risk_score} />
               </div>
             ))}
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-6">
-          {/* Recently Changed */}
-          <div className="bg-gray-900 border border-gray-800 rounded overflow-hidden">
-            <div className="px-4 py-3 border-b border-gray-800 bg-gray-900/50">
-              <h2 className="font-semibold text-gray-200">Recently Changed Files</h2>
+        {/* Recent & Churned Files */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="pixel-box p-5">
+            <div className="font-pixel text-xs text-white border-b border-neutral-800 pb-3 mb-3">
+              [ RECENTLY_CHANGED_FILES ]
             </div>
-            <div className="divide-y divide-gray-800">
+            <div className="divide-y divide-neutral-900">
               {recentFiles?.map((f: any) => (
-                <div key={f.file_path} className="p-4 flex items-center justify-between hover:bg-gray-800/50">
-                  <div>
-                    <div className="font-mono text-sm text-gray-300 truncate max-w-sm" title={f.file_path}>{f.file_path}</div>
-                    <div className="text-xs text-gray-500 mt-1">
+                <div key={f.file_path} className="py-2.5 flex items-center justify-between">
+                  <div className="truncate max-w-[240px]">
+                    <div className="font-mono text-xs text-neutral-200 truncate" title={f.file_path}>{f.file_path}</div>
+                    <div className="text-[10px] text-neutral-500 mt-0.5">
                       {f.commit_count} commits • {f.last_changed_at ? formatDistanceToNow(new Date(f.last_changed_at), { addSuffix: true }) : 'unknown'}
                     </div>
                   </div>
-                  <div className="text-xs font-mono text-gray-400 bg-gray-800 px-2 py-1 rounded">
+                  <span className="pixel-tag text-[10px] text-neutral-300">
                     {f.insertions + f.deletions} churn
-                  </div>
+                  </span>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Most Churned */}
-          <div className="bg-gray-900 border border-gray-800 rounded overflow-hidden">
-            <div className="px-4 py-3 border-b border-gray-800 bg-gray-900/50">
-              <h2 className="font-semibold text-gray-200">Most Churned Files</h2>
+          <div className="pixel-box p-5">
+            <div className="font-pixel text-xs text-white border-b border-neutral-800 pb-3 mb-3">
+              [ MOST_CHURNED_FILES ]
             </div>
-            <div className="divide-y divide-gray-800">
+            <div className="divide-y divide-neutral-900">
               {churnedFiles?.map((f: any) => (
-                <div key={f.file_path} className="p-4 flex items-center justify-between hover:bg-gray-800/50">
-                  <div>
-                    <div className="font-mono text-sm text-gray-300 truncate max-w-sm" title={f.file_path}>{f.file_path}</div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      <span className="text-green-500/80">+{f.insertions}</span> <span className="text-red-500/80">-{f.deletions}</span>
+                <div key={f.file_path} className="py-2.5 flex items-center justify-between">
+                  <div className="truncate max-w-[240px]">
+                    <div className="font-mono text-xs text-neutral-200 truncate" title={f.file_path}>{f.file_path}</div>
+                    <div className="text-[10px] text-neutral-500 mt-0.5">
+                      <span className="text-green-400">+{f.insertions}</span> <span className="text-red-400">-{f.deletions}</span>
                     </div>
                   </div>
-                  <div className="text-xs font-mono text-gray-400 bg-gray-800 px-2 py-1 rounded flex items-center gap-2">
-                    <span>{f.churn} churn</span>
-                    <span className="text-gray-600">({(f.normalized_churn * 100).toFixed(0)}%)</span>
-                  </div>
+                  <span className="pixel-tag text-[10px] text-cyan-400">
+                    {f.churn} churn
+                  </span>
                 </div>
               ))}
             </div>
           </div>
         </div>
 
-        {/* Contributors */}
-        <div className="bg-gray-900 border border-gray-800 rounded overflow-hidden">
-          <div className="px-4 py-3 border-b border-gray-800 bg-gray-900/50">
-            <h2 className="font-semibold text-gray-200">Contributors</h2>
+        {/* Contributors Table */}
+        <div className="pixel-box p-5">
+          <div className="font-pixel text-xs text-white border-b border-neutral-800 pb-3 mb-3 flex items-center gap-2">
+            <Users className="w-4 h-4 text-cyan-400" />
+            <span>[ REPOSITORY_CONTRIBUTORS ]</span>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="text-xs text-gray-500 uppercase bg-gray-800/50">
+            <table className="w-full text-left font-mono text-xs">
+              <thead className="text-[10px] font-pixel text-neutral-500 border-b border-neutral-800">
                 <tr>
-                  <th className="px-4 py-3">Author</th>
-                  <th className="px-4 py-3">Commits</th>
-                  <th className="px-4 py-3">Files Touched</th>
-                  <th className="px-4 py-3">Insertions</th>
-                  <th className="px-4 py-3">Deletions</th>
-                  <th className="px-4 py-3">Last Active</th>
+                  <th className="py-2 px-3">AUTHOR</th>
+                  <th className="py-2 px-3">COMMITS</th>
+                  <th className="py-2 px-3">FILES</th>
+                  <th className="py-2 px-3">LINES (+)</th>
+                  <th className="py-2 px-3">LINES (-)</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-800 text-gray-300">
+              <tbody className="divide-y divide-neutral-900 text-neutral-300">
                 {contributors?.map((c: any) => (
-                  <tr key={c.author_email} className="hover:bg-gray-800/50">
-                    <td className="px-4 py-3 font-medium">
+                  <tr key={c.author_email} className="hover:bg-neutral-950">
+                    <td className="py-2.5 px-3 font-medium text-white">
                       {c.author_name}
-                      <div className="text-xs text-gray-600 font-normal">{c.author_email}</div>
+                      <div className="text-[10px] text-neutral-500">{c.author_email}</div>
                     </td>
-                    <td className="px-4 py-3 font-mono text-blue-400">{c.commit_count}</td>
-                    <td className="px-4 py-3 font-mono">{c.files_touched}</td>
-                    <td className="px-4 py-3 font-mono text-green-500/80">+{c.insertions}</td>
-                    <td className="px-4 py-3 font-mono text-red-500/80">-{c.deletions}</td>
-                    <td className="px-4 py-3 text-gray-500">
-                      {c.last_commit_at ? formatDistanceToNow(new Date(c.last_commit_at), { addSuffix: true }) : ''}
-                    </td>
+                    <td className="py-2.5 px-3 text-cyan-400 font-bold">{c.commit_count}</td>
+                    <td className="py-2.5 px-3 text-neutral-300">{c.files_touched}</td>
+                    <td className="py-2.5 px-3 text-green-400">+{c.insertions}</td>
+                    <td className="py-2.5 px-3 text-red-400">-{c.deletions}</td>
                   </tr>
                 ))}
               </tbody>
@@ -204,26 +219,26 @@ export default function GitDashboard() {
         </div>
 
         {/* Recent Commits */}
-        <div className="bg-gray-900 border border-gray-800 rounded overflow-hidden">
-          <div className="px-4 py-3 border-b border-gray-800 bg-gray-900/50">
-            <h2 className="font-semibold text-gray-200">Recent Commits</h2>
+        <div className="pixel-box p-5">
+          <div className="font-pixel text-xs text-white border-b border-neutral-800 pb-3 mb-3 flex items-center gap-2">
+            <GitCommit className="w-4 h-4 text-cyan-400" />
+            <span>[ RECENT_COMMITS ]</span>
           </div>
-          <div className="divide-y divide-gray-800">
+          <div className="divide-y divide-neutral-900">
             {commits?.map((c: any) => (
-              <div key={c.sha} className="p-4 hover:bg-gray-800/50">
+              <div key={c.sha} className="py-2.5 hover:bg-neutral-950">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="font-mono text-blue-400 text-sm">{c.sha.substring(0, 8)}</span>
-                  <span className="text-gray-300 text-sm font-medium">{c.author_name}</span>
-                  <span className="text-gray-600 text-xs flex-1">
+                  <span className="font-mono text-cyan-400 text-xs font-bold">{c.sha.substring(0, 8)}</span>
+                  <span className="text-neutral-200 text-xs">{c.author_name}</span>
+                  <span className="text-neutral-500 text-[10px] ml-auto">
                     {formatDistanceToNow(new Date(c.committed_at), { addSuffix: true })}
                   </span>
                 </div>
-                <div className="text-sm text-gray-400 truncate">{c.message.split('\n')[0]}</div>
+                <div className="text-xs text-neutral-400 font-mono truncate">{c.message.split('\n')[0]}</div>
               </div>
             ))}
           </div>
         </div>
-
       </div>
     </div>
   )

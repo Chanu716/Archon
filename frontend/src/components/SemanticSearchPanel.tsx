@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/api/client'
+import { Search, X, Terminal, ExternalLink } from 'lucide-react'
 
 interface SearchResult {
   entity: string
@@ -44,100 +45,111 @@ export default function SemanticSearchPanel({ repoId, onSelectResult, onClose }:
       Module: 'text-blue-400',
       Method: 'text-purple-400'
     }
-    return colors[type] || 'text-gray-400'
+    return colors[type] || 'text-cyan-400'
   }
 
   return (
-    <div className="w-96 bg-gray-900 border-r border-gray-700 flex flex-col h-full overflow-hidden absolute left-0 z-20 shadow-2xl">
-      <div className="p-4 border-b border-gray-700 flex justify-between items-center bg-gray-900">
-        <h2 className="text-white font-bold text-sm">Semantic Code Search</h2>
-        <button onClick={onClose} className="text-gray-500 hover:text-white flex-shrink-0 text-lg leading-none">✕</button>
+    <div className="w-96 bg-black border-r-2 border-white flex flex-col h-full overflow-hidden absolute left-0 z-30 shadow-pixel font-mono text-xs">
+      {/* Header */}
+      <div className="p-3.5 border-b-2 border-white flex justify-between items-center bg-neutral-950">
+        <div className="flex items-center gap-2">
+          <Terminal className="w-4 h-4 text-cyan-400" />
+          <h2 className="font-pixel text-[11px] text-white">[ SEMANTIC_SEARCH ]</h2>
+        </div>
+        <button
+          onClick={onClose}
+          className="text-neutral-400 hover:text-white p-1 border border-neutral-800 hover:border-white transition flex-shrink-0 text-xs"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
       </div>
 
-      <div className="p-4 border-b border-gray-800 bg-gray-900">
+      {/* Query Bar */}
+      <div className="p-3 border-b border-neutral-800 bg-neutral-950">
         <form onSubmit={handleSearch} className="flex gap-2">
           <input
             type="text"
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder="e.g. Where is authentication handled?"
-            className="flex-1 bg-gray-950 border border-gray-700 text-gray-200 text-sm rounded px-3 py-2 focus:outline-none focus:border-blue-500 placeholder-gray-600"
+            placeholder="> e.g. where is authentication handled?"
+            className="flex-1 pixel-input text-xs px-3 py-1.5 focus:outline-none"
           />
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             disabled={!query.trim() || isLoading}
-            className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 text-white px-3 rounded text-sm font-medium transition-colors flex items-center justify-center"
+            className="pixel-btn-filled-cyan px-3 py-1.5"
           >
-            {isLoading ? '...' : '🔍'}
+            {isLoading ? '…' : <Search className="w-3.5 h-3.5" />}
           </button>
         </form>
       </div>
 
-      <div className="flex-1 overflow-y-auto bg-gray-950">
+      <div className="flex-1 overflow-y-auto p-3 bg-black space-y-3">
         {!searchTerm && !isLoading && (
-          <div className="p-8 text-center text-gray-500 text-sm">
-            <p>Enter a natural language query to find relevant code.</p>
-            <p className="mt-4 text-xs text-gray-600 italic">"How are payments processed?"</p>
+          <div className="p-6 text-center text-neutral-500 text-xs space-y-2">
+            <p>[ ENTER_NATURAL_LANGUAGE_QUERY ]</p>
+            <p className="text-[11px] text-neutral-600 italic">"How are decorators parsed?"</p>
           </div>
         )}
-        
+
         {isLoading && (
-          <div className="p-8 text-center text-blue-400 text-sm animate-pulse">
-            Embedding query and searching vectors...
+          <div className="p-6 text-center text-cyan-400 font-pixel text-xs animate-pulse">
+            [ EMBEDDING_QUERY & SEARCHING VECTORS… ]
           </div>
         )}
 
         {error && (
-          <div className="p-4 text-red-400 text-sm bg-red-900/20 border-b border-red-900/50">
-            Search failed. Check if OpenAI API key is configured and pgvector is enabled.
+          <div className="p-3 border border-red-500 bg-red-950/40 text-red-400 text-xs">
+            [ERROR] Semantic search failed. Check embedding provider config.
           </div>
         )}
 
-        {results?.length === 0 && (
-          <div className="p-8 text-center text-gray-500 text-sm">
-            No semantic matches found above the threshold.
+        {results && results.length === 0 && (
+          <div className="p-6 text-center text-neutral-500 text-xs">
+            [ NO_SEMANTIC_MATCHES_ABOVE_THRESHOLD ]
           </div>
         )}
 
         {results && results.length > 0 && (
-          <div className="divide-y divide-gray-800">
+          <div className="space-y-2.5">
             {results.map((res: SearchResult, idx: number) => (
-              <div 
-                key={`${res.entity}-${idx}`} 
-                className="p-4 hover:bg-gray-900 cursor-pointer transition-colors group"
+              <div
+                key={`${res.entity}-${idx}`}
+                className="border border-neutral-800 hover:border-cyan-400 bg-neutral-950 p-3 cursor-pointer transition-colors group"
                 onClick={() => onSelectResult(res.entity, res.name)}
               >
                 <div className="flex justify-between items-start mb-1">
                   <div className="overflow-hidden pr-2">
-                    <span className={`text-xs font-semibold uppercase tracking-wide mr-2 ${getTypeColor(res.entity_type)}`}>
-                      {res.entity_type}
+                    <span className={`font-pixel text-[9px] uppercase mr-1.5 ${getTypeColor(res.entity_type)}`}>
+                      [{res.entity_type}]
                     </span>
-                    <span className="font-mono text-sm text-gray-200 truncate inline-block max-w-[200px] align-bottom">
+                    <span className="font-mono text-xs text-white font-bold truncate inline-block max-w-[170px] align-bottom">
                       {res.name.split('.').pop()}
                     </span>
                   </div>
-                  <span className="text-xs font-mono text-green-400 bg-green-900/30 px-1.5 py-0.5 rounded border border-green-800/50 whitespace-nowrap">
-                    {(res.similarity * 100).toFixed(1)}%
+                  <span className="pixel-tag-cyan text-[10px] whitespace-nowrap font-mono">
+                    {Math.round(res.similarity * 100)}%
                   </span>
                 </div>
-                <div className="text-xs text-gray-500 font-mono truncate mb-2" title={res.file}>
+
+                <div className="text-[10px] text-neutral-500 font-mono truncate mb-2" title={res.file}>
                   {res.file}
                 </div>
-                
-                {/* Source Preview */}
-                <div className="text-xs text-gray-400 bg-gray-950 p-2 rounded border border-gray-800 line-clamp-3 font-mono opacity-80 group-hover:opacity-100 transition-opacity mb-2">
+
+                <div className="text-[11px] text-neutral-300 bg-black p-2 border border-neutral-800 line-clamp-3 font-mono opacity-80 group-hover:opacity-100 mb-2">
                   {res.source_reference}
                 </div>
-                
-                <div className="flex justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+
+                <div className="flex justify-end pt-1">
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
                       navigate(`/repositories/${repoId}/investigation?entity_id=${encodeURIComponent(res.entity)}`)
                     }}
-                    className="text-[10px] bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-1 rounded"
+                    className="pixel-btn text-[10px] px-2 py-0.5 hover:border-cyan-400 hover:text-cyan-400 flex items-center gap-1"
                   >
-                    Open Investigation
+                    <ExternalLink className="w-3 h-3" />
+                    <span>[ INVESTIGATE ]</span>
                   </button>
                 </div>
               </div>
