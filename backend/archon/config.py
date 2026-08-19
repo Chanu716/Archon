@@ -44,6 +44,8 @@ class Settings(BaseSettings):
     # App
     LOG_LEVEL: str = "INFO"
     DEBUG: bool = False
+    # Comma-separated list of allowed CORS origins (e.g. https://nohcra.netlify.app)
+    ALLOWED_ORIGINS: str = ""
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 

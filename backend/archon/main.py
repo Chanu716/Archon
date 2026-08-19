@@ -5,8 +5,20 @@ from archon.config import settings
 from archon.api.v1 import health, repositories, analysis, graph, metrics, impact, git, search, analyst, evolution, investigation
 from archon.db.neo4j import neo4j_driver
 import structlog
+import os
 
 logger = structlog.get_logger(__name__)
+
+def _get_allowed_origins() -> list[str]:
+    """Build CORS allowed origins list from env or defaults."""
+    env_origins = os.getenv("ALLOWED_ORIGINS", "")
+    if env_origins:
+        return [o.strip() for o in env_origins.split(",") if o.strip()]
+    return [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "https://nohcra.netlify.app",
+    ]
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -51,7 +63,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # TODO: Restrict in production
+    allow_origins=_get_allowed_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
