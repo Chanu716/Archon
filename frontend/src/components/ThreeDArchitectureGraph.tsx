@@ -488,8 +488,8 @@ export default function ThreeDArchitectureGraph({
     <div className="relative w-full h-full bg-black overflow-hidden select-none">
       <div ref={containerRef} className="w-full h-full cursor-grab active:cursor-grabbing" />
 
-      {/* Retro Cyber-Pixel Controls HUD */}
-      <div className="absolute bottom-5 right-5 z-20 flex items-center gap-1.5 pixel-box p-1.5 shadow-pixel">
+      {/* Cyber-Pixel 3D Toolbar - Centered HUD */}
+      <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 pixel-box p-1.5 shadow-pixel">
         <button
           onClick={() => setIsRotating(!isRotating)}
           className={`p-1.5 border border-neutral-700 hover:border-cyan-400 transition-colors ${

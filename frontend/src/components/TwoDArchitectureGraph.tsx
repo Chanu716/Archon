@@ -511,8 +511,8 @@ export default function TwoDArchitectureGraph({
     <div className="relative w-full h-full bg-black overflow-hidden select-none">
       <div ref={containerRef} className="w-full h-full cursor-grab active:cursor-grabbing" />
 
-      {/* Cyber-Pixel 2D Toolbar */}
-      <div className="absolute bottom-5 right-5 z-20 flex items-center gap-1.5 pixel-box p-1.5 shadow-pixel">
+      {/* Cyber-Pixel 2D Toolbar - Centered HUD */}
+      <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 pixel-box p-1.5 shadow-pixel">
         <div className="flex items-center gap-1 bg-neutral-900 px-2 py-1 border border-neutral-700 text-xs text-neutral-300">
           <LayoutGrid className="w-3.5 h-3.5 text-cyan-400" />
           <select

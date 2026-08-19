@@ -157,12 +157,22 @@ Located on the top-right of the Architecture page:
 
 ### 4.2: Semantic Natural Language Search (`[ SEARCH ]` Button)
 Click **`[ SEARCH ]`** in the top navigation bar to open the AI vector search drawer:
-1. Enter questions in plain English:
+1. Enter questions or descriptions in plain English:
    * *"Where is request cookie parsing handled?"*
-   * *"How does the middleware pipeline process responses?"*
+   * *"Face detection and landmark preprocessing pipeline"*
 2. Archon calculates cosine similarity across vector embeddings and returns ranked matches.
 3. View source code previews and similarity percentages (`e.g. 94%`).
-4. Click **`[ INVESTIGATE ]`** to inspect the node in the Intelligence Workbench.
+4. Click **`[ INVESTIGATE ]`** to inspect the node in the Intelligence Workbench or click the symbol name to zoom directly to it on the graph.
+
+### 4.3: When to Use Semantic Search vs. AI Analyst
+
+| Task | Recommended Tool | Why |
+|---|---|---|
+| **Find where a feature or logic is implemented** | 🔍 **Semantic Search** (`[ SEARCH ]`) | Instant vector search returns the exact code entities and files. |
+| **Locate a specific function or class by name** | ⚡ **Symbol Quick-Search** (`> query_symbol…`) | Instant indexed exact/fuzzy matching across all AST symbols. |
+| **Understand system data flow or architecture patterns** | 🤖 **AI Analyst** (`[ AI_ANALYST ]`) | Multi-step agent traverses the Neo4j graph and explains the relationships. |
+| **Find dead code, high coupling, or circular dependencies** | 🤖 **AI Analyst** (`[ AI_ANALYST ]`) | Analyzes metrics across the graph with step-by-step reasoning traces. |
+| **Calculate blast radius / refactoring impact** | 💥 **Blast Radius Engine** (`[ ! BLAST_RADIUS ]`) | Deterministic BFS graph traversal showing direct and indirect callers. |
 
 ---
 

@@ -1,13 +1,13 @@
 <div align="center">
 
-```
-           █████╗ ██████╗  ██████╗██╗  ██╗ ██████╗ ███╗   ██╗
-          ██╔══██╗██╔══██╗██╔════╝██║  ██║██╔═══██╗████╗  ██║
-          ███████║██████╔╝██║     ███████║██║   ██║██╔██╗ ██║
-          ██╔══██║██╔══██╗██║     ██╔══██║██║   ██║██║╚██╗██║
-          ██║  ██║██║  ██║╚██████╗██║  ██║╚██████╔╝██║ ╚████║
-          ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═══╝
-```
+<pre>
+█████╗ ██████╗  ██████╗██╗  ██╗ ██████╗ ███╗   ██╗
+██╔══██╗██╔══██╗██╔════╝██║  ██║██╔═══██╗████╗  ██║
+███████║██████╔╝██║     ███████║██║   ██║██╔██╗ ██║
+██╔══██║██╔══██╗██║     ██╔══██║██║   ██║██║╚██╗██║
+██║  ██║██║  ██║╚██████╗██║  ██║╚██████╔╝██║ ╚████║
+╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═══╝
+</pre>
 
 [![Status](https://img.shields.io/badge/System-Operational-00f3ff?style=for-the-badge&logo=statuspage&logoColor=black)](http://localhost:3000)
 [![Graph](https://img.shields.io/badge/Graph-Neo4j_5.x-008CC1?style=for-the-badge&logo=neo4j&logoColor=white)](https://neo4j.com)
@@ -46,6 +46,20 @@ Archon enforces a strict hierarchy between verified facts and machine learning i
 | **Deterministic Facts** | Directly computed from the AST (cyclomatic complexity, line count, fan-in/fan-out, call hierarchy, git churn). | Labeled `[DET]` / `computed` |
 | **Archon Heuristics** | Algorithmic indices combining complexity, coupling, and churn into risk scores. | Labeled `[HEU]` / `Risk Heuristic v1` |
 | **AI Analysis** | Natural language synthesis produced by the LLM citing verified graph entities and call paths. | Labeled `AI Analysis` |
+
+---
+
+## Semantic Search vs. AI Analyst
+
+Archon provides two complementary AI intelligence layers with distinct purposes:
+
+| Feature | 🔍 **Semantic Vector Search** (`[ SEARCH ]`) | 🤖 **AI Code Analyst** (`[ AI_ANALYST ]`) |
+|---|---|---|
+| **Primary Role** | Neural Symbol & Concept Finder | Autonomous Senior Architect Reasoning Agent |
+| **How it Works** | Generates text embeddings and executes mathematical cosine-distance nearest-neighbor queries via `pgvector`. | Executes a multi-step ReAct agent using dynamic tools across the Neo4j Knowledge Graph, AST, Git commit history, and complexity metrics. |
+| **Ideal Query** | *"where is token validation handled?"*, *"face detection pipeline"* | *"How is data routed from HTTP request to model inference?", "Is there architectural drift in the auth module?"* |
+| **Output Type** | Ranked list of exact code entities (classes, functions, modules) with similarity scores and one-click graph centering. | Conversational architectural synthesis with streaming step-by-step reasoning traces (`[ REASONING_TRACE ]`), confidence ratings, and citations. |
+| **Response Latency** | Instant (~50ms) | Multi-step Streaming (~3–8s) |
 
 ---
 
