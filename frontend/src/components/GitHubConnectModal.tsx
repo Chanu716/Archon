@@ -90,7 +90,7 @@ export default function GitHubConnectModal({ onClose, onImport, githubToken }: G
         {/* Header */}
         <div className="p-4 border-b-2 border-white flex items-center justify-between bg-neutral-950">
           <div className="flex items-center gap-2">
-            <Github className="w-4 h-4 text-cyan-400" />
+            <GitBranch className="w-4 h-4 text-cyan-400" />
             <span className="font-pixel text-[11px] text-white">[ GITHUB_CONNECT ]</span>
           </div>
           <button onClick={onClose} className="text-neutral-400 hover:text-white border border-neutral-700 hover:border-white p-1 transition">
