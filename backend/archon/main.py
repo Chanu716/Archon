@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 from archon.config import settings
-from archon.api.v1 import health, repositories, analysis, graph, metrics, impact, git, search, analyst, evolution, investigation
+from archon.api.v1 import health, repositories, analysis, graph, metrics, impact, git, search, analyst, evolution, investigation, github_auth
 from archon.db.neo4j import neo4j_driver
 import structlog
 import os
@@ -98,6 +98,7 @@ app.include_router(search.router, prefix="/api/v1", tags=["search"])
 app.include_router(analyst.router, prefix="/api/v1", tags=["analyst"])
 app.include_router(evolution.router, prefix="/api/v1", tags=["evolution"])
 app.include_router(investigation.router, prefix="/api/v1", tags=["investigation"])
+app.include_router(github_auth.router, prefix="/api/v1", tags=["github"])
 
 @app.get("/")
 async def root():

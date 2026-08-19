@@ -28,8 +28,11 @@ export const api = {
     const res = await apiClient.get('/repositories')
     return toArray(res.data)
   },
-  createRepository: async (sourceUrl: string) => {
-    const res = await apiClient.post('/repositories', { source_url: sourceUrl })
+  createRepository: async (sourceUrl: string, githubToken?: string) => {
+    const res = await apiClient.post('/repositories', {
+      source_url: sourceUrl,
+      ...(githubToken ? { github_token: githubToken } : {}),
+    })
     return res.data?.data || res.data
   },
   analyzeRepository: async (repoId: string) => {

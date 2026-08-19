@@ -5,6 +5,7 @@ from datetime import datetime
 
 class RepositoryCreate(BaseModel):
     source_url: HttpUrl
+    github_token: Optional[str] = None  # OAuth token for private repo access
 
 class RepositoryResponse(BaseModel):
     id: uuid.UUID

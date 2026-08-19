@@ -33,7 +33,7 @@ async def _run_analysis_pipeline(job_id: uuid.UUID, repo: Repository):
     await run_analysis_pipeline(
         repository_id=repo.id,
         job_id=job_id,
-        source_url=repo.source_url,
+        source_url=repo.managed_path or repo.source_url,  # managed_path has token for private repos
         source_type=repo.source_type,
         progress_callback=progress_callback
     )

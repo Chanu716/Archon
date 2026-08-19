@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     NEO4J_URI: str = "bolt://localhost:7687"
     NEO4J_USER: str = "neo4j"
     NEO4J_PASSWORD: str = "neo4j_secret"
+    NEO4J_DATABASE: str = "neo4j"  # AuraDB uses 'neo4j' as default; set to instance name if needed
     
     # LLM
     LLM_PROVIDER: str = "ollama"
@@ -20,6 +21,11 @@ class Settings(BaseSettings):
     ANTHROPIC_API_KEY: Optional[str] = None
     LLM_MODEL: str = "llama3"
     LLM_TEMPERATURE: float = 0.1
+
+    # GitHub OAuth
+    GITHUB_CLIENT_ID: Optional[str] = None
+    GITHUB_CLIENT_SECRET: Optional[str] = None
+    FRONTEND_URL: str = "https://nohcra.netlify.app"
     
     # Embeddings
     EMBEDDING_PROVIDER: str = "ollama"

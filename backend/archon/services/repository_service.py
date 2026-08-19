@@ -3,23 +3,40 @@ from sqlalchemy import select
 from archon.models.repository import Repository
 from archon.models.repository import AnalysisSnapshot
 import uuid
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 class RepositoryService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def create_repository(self, name: str, source_url: str) -> Repository:
+    async def create_repository(
+        self,
+        name: str,
+        source_url: str,
+        github_token: Optional[str] = None,
+    ) -> Repository:
+        # For private repos, embed token in HTTPS clone URL
+        # Format: https://oauth2:TOKEN@github.com/owner/repo.git
+        effective_url = source_url
+        if github_token and "github.com" in source_url:
+            # Ensure HTTPS scheme
+            clean = source_url.replace("https://", "").replace("http://", "")
+            # Remove any existing credentials
+            if "@" in clean:
+                clean = clean.split("@", 1)[1]
+            effective_url = f"https://oauth2:{github_token}@{clean}"
+
         repo = Repository(
             name=name,
             source_type="github",
-            source_url=source_url,
-            managed_path="" # Set when first analyzed
+            source_url=source_url,   # Store original URL (no token)
+            managed_path=effective_url  # Cloner uses this (has token if private)
         )
         self.db.add(repo)
         await self.db.commit()
         await self.db.refresh(repo)
         return repo
+
 
     async def get_repository(self, repo_id: uuid.UUID) -> Repository:
         stmt = select(Repository).where(Repository.id == repo_id)

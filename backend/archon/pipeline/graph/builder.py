@@ -16,10 +16,7 @@ class GraphBuilder:
         self.commit_sha = commit_sha
 
     async def build(self, parsed_files: List[ParsedFile]):
-        if not neo4j_driver.driver:
-            neo4j_driver.connect()
-            
-        async with neo4j_driver.driver.session() as session:
+        async with neo4j_driver.session() as session:
             # 1. Create Repository Node
             await session.run(
                 """

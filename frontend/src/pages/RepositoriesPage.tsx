@@ -1,21 +1,46 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { api } from '@/api/client'
 import type { Repository } from '@/types'
-import { Terminal, Plus, GitBranch, Box, Activity, CheckCircle, Clock } from 'lucide-react'
+import { Terminal, Plus, GitBranch, Box, Activity, CheckCircle, Clock, Github, CheckCheck } from 'lucide-react'
+import GitHubConnectModal from '@/components/GitHubConnectModal'
 
 export default function RepositoriesPage() {
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
+  const location = useLocation()
   const [url, setUrl] = useState('')
+  const [showGitHubModal, setShowGitHubModal] = useState(false)
+  const [githubToken, setGithubToken] = useState<string | null>(
+    () => localStorage.getItem('github_token')
+  )
+
+  // On mount: extract github_token or github_error from URL query params
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    const token = params.get('github_token')
+    const error = params.get('github_error')
+
+    if (token) {
+      localStorage.setItem('github_token', token)
+      setGithubToken(token)
+      setShowGitHubModal(true)
+      // Clean URL
+      navigate('/repositories', { replace: true })
+    } else if (error) {
+      console.error('GitHub OAuth error:', error)
+      navigate('/repositories', { replace: true })
+    }
+  }, [location.search, navigate])
 
   const { data: repos, isLoading } = useQuery<Repository[]>({
     queryKey: ['repositories'],
     queryFn: api.getRepositories,
   })
 
-  const createMutation = useMutation<unknown, Error, string>({
-    mutationFn: (sourceUrl: string) => api.createRepository(sourceUrl),
+  const createMutation = useMutation<unknown, Error, { sourceUrl: string; githubToken?: string }>({
+    mutationFn: ({ sourceUrl, githubToken }) => api.createRepository(sourceUrl, githubToken),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['repositories'] })
       setUrl('')
@@ -25,8 +50,14 @@ export default function RepositoriesPage() {
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault()
     if (url) {
-      createMutation.mutate(url)
+      createMutation.mutate({ sourceUrl: url })
     }
+  }
+
+  const handleGitHubImport = async (cloneUrl: string, token: string) => {
+    await createMutation.mutateAsync({ sourceUrl: cloneUrl, githubToken: token })
+    queryClient.invalidateQueries({ queryKey: ['repositories'] })
+    setShowGitHubModal(false)
   }
 
   const repoList = Array.isArray(repos) ? repos : []
@@ -93,6 +124,24 @@ export default function RepositoriesPage() {
               {createMutation.isPending ? 'INGESTING…' : 'INGEST_REPO'}
             </button>
           </form>
+
+          {/* GitHub Connect button */}
+          <div className="mt-4 pt-4 border-t border-neutral-800 flex items-center justify-between">
+            <div className="text-[10px] text-neutral-500 font-pixel">
+              OR BROWSE YOUR GITHUB REPOSITORIES (INCL. PRIVATE)
+            </div>
+            <button
+              onClick={() => setShowGitHubModal(true)}
+              className={`flex items-center gap-2 border px-3 py-1.5 text-[10px] font-pixel transition ${
+                githubToken
+                  ? 'border-cyan-400/50 text-cyan-400 hover:bg-cyan-400 hover:text-black'
+                  : 'border-neutral-600 text-neutral-400 hover:border-white hover:text-white'
+              }`}
+            >
+              {githubToken ? <CheckCheck className="w-3 h-3" /> : <Github className="w-3 h-3" />}
+              {githubToken ? 'GITHUB_CONNECTED' : 'CONNECT_GITHUB'}
+            </button>
+          </div>
 
           {createMutation.isError && (
             <div className="mt-3 p-2 bg-red-950/60 border border-red-500 text-red-400 text-xs font-mono">
@@ -204,6 +253,15 @@ export default function RepositoriesPage() {
           )}
         </div>
       </div>
+
+      {/* GitHub Connect Modal */}
+      {showGitHubModal && (
+        <GitHubConnectModal
+          onClose={() => setShowGitHubModal(false)}
+          onImport={handleGitHubImport}
+          githubToken={githubToken}
+        />
+      )}
     </div>
   )
 }

@@ -26,9 +26,14 @@ async def create_repository(
     """Create (register) a new repository."""
     svc = RepositoryService(db)
     source_url = str(payload.source_url)
-    name = source_url.rstrip("/").split("/")[-1]
-    repo = await svc.create_repository(name=name, source_url=source_url)
+    name = source_url.rstrip("/").split("/")[-1].removesuffix(".git")
+    repo = await svc.create_repository(
+        name=name,
+        source_url=source_url,
+        github_token=payload.github_token,
+    )
     return repo
+
 
 
 @router.get("/repositories/{repo_id}", response_model=RepositoryResponse)
