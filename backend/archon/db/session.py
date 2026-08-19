@@ -1,8 +1,18 @@
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from archon.config import settings
 
+def _get_database_url() -> str:
+    """Ensure the DATABASE_URL always uses the asyncpg driver."""
+    url = settings.DATABASE_URL
+    # Normalise scheme: postgresql:// and postgres:// → postgresql+asyncpg://
+    for prefix in ("postgresql://", "postgres://"):
+        if url.startswith(prefix):
+            return "postgresql+asyncpg://" + url[len(prefix):]
+    # Already has a driver (e.g. postgresql+asyncpg://)
+    return url
+
 engine = create_async_engine(
-    settings.DATABASE_URL,
+    _get_database_url(),
     echo=settings.DEBUG,
     future=True,
     pool_size=5,        # Supabase free: max 10 connections total
