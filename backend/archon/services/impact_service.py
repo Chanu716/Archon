@@ -242,7 +242,7 @@ class ImpactService:
         RETURN n.name AS name, n.qualified_name AS qualified_name,
                labels(n)[0] AS type
         """
-        async with neo4j_driver.driver.session() as session:
+        async with neo4j_driver.session() as session:
             result = await session.run(query, snapshot_id=self.snapshot_id, node_id=node_id)
             record = await result.single()
             if not record:
@@ -281,7 +281,7 @@ class ImpactService:
                    r.resolution AS resolution
             LIMIT $limit
             """
-        async with neo4j_driver.driver.session() as session:
+        async with neo4j_driver.session() as session:
             result = await session.run(
                 query,
                 snapshot_id=self.snapshot_id,
@@ -312,7 +312,7 @@ class ImpactService:
             m.qualified_name AS module,
             c.qualified_name AS class_name
         """
-        async with neo4j_driver.driver.session() as session:
+        async with neo4j_driver.session() as session:
             result = await session.run(
                 query, ids=entity_ids, snapshot_id=self.snapshot_id
             )

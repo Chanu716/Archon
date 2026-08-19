@@ -22,11 +22,11 @@ async def _run_analysis_pipeline(job_id: uuid.UUID, repo: Repository):
     
     logger = structlog.get_logger(__name__)
 
-    async def progress_callback(j_id: uuid.UUID, progress: float, stage: str):
+    async def progress_callback(j_id: uuid.UUID, progress: float, stage: str, error_msg: str = None):
         try:
             async with async_session_factory() as db:
                 service = JobService(db)
-                await service.update_progress(j_id, progress, stage)
+                await service.update_progress(j_id, progress, stage, error_message=error_msg)
         except Exception as e:
             logger.error("failed_to_update_progress", job_id=str(j_id), error=str(e))
 

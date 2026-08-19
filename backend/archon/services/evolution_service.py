@@ -195,10 +195,7 @@ class EvolutionService:
             comp.entities.append(lifecycle)
             
         # 2. Compare Relationships (Neo4j)
-        if not neo4j_driver.driver:
-            neo4j_driver.connect()
-            
-        async with neo4j_driver.driver.session() as session:
+        async with neo4j_driver.session() as session:
             # Get dependencies from previous snapshot
             query = """
             MATCH (s {snapshot_id: $snap_id})-[r]->(t {snapshot_id: $snap_id})
@@ -250,7 +247,7 @@ class EvolutionService:
                             reason=f"Module gained new dependencies ({targets}) and risk increased significantly (+{risk_metric.percentage_change*100:.1f}%)."
                         ))
         
-        async with neo4j_driver.driver.session() as session:
+        async with neo4j_driver.session() as session:
             cycles_q = """
             MATCH (m:Module {snapshot_id: $snap_id})
             MATCH path = (m)-[:DEPENDS_ON*1..5]->(m)

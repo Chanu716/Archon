@@ -21,7 +21,7 @@ class StaticAnalyzer:
         if not neo4j_driver.driver:
             neo4j_driver.connect()
             
-        async with neo4j_driver.driver.session() as session:
+        async with neo4j_driver.session() as session:
             # 1. Function Level Metrics (Fan-in, Fan-out)
             # Fan-out: Number of unique functions this function calls (exact or inferred)
             # Fan-in: Number of unique functions that call this function (exact or inferred)

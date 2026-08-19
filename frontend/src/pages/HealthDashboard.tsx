@@ -26,7 +26,7 @@ export const HealthDashboard: React.FC = () => {
   const { data, isLoading, error } = useQuery<HealthData>({
     queryKey: ['health', id],
     queryFn: async () => {
-      const response = await apiClient.get(`/api/v1/metrics/${id}/health`)
+      const response = await apiClient.get(`/metrics/${id}/health`)
       return response.data
     },
   })

@@ -186,7 +186,7 @@ async def handle_get_graph_context(input: GetGraphContextInput, context: Dict[st
     """
     
     try:
-        async with neo4j_driver.driver.session() as session:
+        async with neo4j_driver.session() as session:
             result = await session.run(query, snapshot_id=str(snap_id), entity_id=input.entity_id)
             records = await result.data()
             

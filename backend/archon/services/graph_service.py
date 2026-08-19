@@ -41,7 +41,7 @@ class GraphService:
         """
         if not neo4j_driver.driver:
             neo4j_driver.connect()
-        async with neo4j_driver.driver.session() as session:
+        async with neo4j_driver.session() as session:
             result = await session.run(query, snapshot_id=self.snapshot_id, q=q, limit=limit)
             records = await result.data()
             return [self._format_node(r["n"]) for r in records]
@@ -56,7 +56,7 @@ class GraphService:
         """
         if not neo4j_driver.driver:
             neo4j_driver.connect()
-        async with neo4j_driver.driver.session() as session:
+        async with neo4j_driver.session() as session:
             result = await session.run(query, snapshot_id=self.snapshot_id, node_id=node_id)
             record = await result.single()
             if not record:
@@ -85,7 +85,7 @@ class GraphService:
         if not neo4j_driver.driver:
             neo4j_driver.connect()
 
-        async with neo4j_driver.driver.session() as session:
+        async with neo4j_driver.session() as session:
             result = await session.run(query, **params)
             async for record in result:
                 # Add source node

@@ -122,5 +122,5 @@ async def run_analysis_pipeline(
         
     except Exception as e:
         logger.error("pipeline_failed", job_id=str(job_id), error=str(e))
-        await progress_callback(job_id, -1.0, "failed")
+        await progress_callback(job_id, -1.0, "failed", str(e))
         raise

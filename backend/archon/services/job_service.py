@@ -24,7 +24,7 @@ class JobService:
         await self.db.refresh(job)
         return job
 
-    async def update_progress(self, job_id: uuid.UUID, progress: float, stage: str):
+    async def update_progress(self, job_id: uuid.UUID, progress: float, stage: str, error_message: str = None):
         stmt = select(AnalysisJob).where(AnalysisJob.id == job_id)
         result = await self.db.execute(stmt)
         job = result.scalar_one_or_none()
@@ -35,6 +35,8 @@ class JobService:
             
         job.progress = progress
         job.current_stage = stage
+        if error_message:
+            job.error_message = error_message
         
         if progress == 0.0:
             job.status = "running"
