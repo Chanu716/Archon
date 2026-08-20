@@ -172,52 +172,20 @@ class GroqProvider(OpenAICompatibleProvider):
         )
 
 
-class OllamaProvider(OpenAICompatibleProvider):
-    def __init__(self, model: str = None):
-        super().__init__(
-            base_url=f"{settings.OLLAMA_BASE_URL.rstrip('/')}/v1",
-            api_key="ollama",
-            model=model or settings.LLM_MODEL or "llama3"
-        )
-
-    async def _call_with_tools_once(self, messages: list, tools: list) -> dict:
-        try:
-            return await super()._call_with_tools_once(messages, tools)
-        except httpx.ConnectError:
-            raise ValueError(
-                "Cannot connect to Ollama at http://localhost:11434. "
-                "Ollama is only available when running Archon locally. "
-                "On cloud deployments (Render), please select Gemini 3.6 Flash, OpenRouter (Llama 3.3), or Groq."
-            )
-
-    async def _stream_answer(self, messages: list) -> AsyncGenerator[str, None]:
-        try:
-            async for token in super()._stream_answer(messages):
-                yield token
-        except httpx.ConnectError:
-            raise ValueError(
-                "Cannot connect to Ollama at http://localhost:11434. "
-                "Ollama is only available when running Archon locally. "
-                "On cloud deployments (Render), please select Gemini 3.6 Flash, OpenRouter (Llama 3.3), or Groq."
-            )
-
-
 def get_llm_provider(provider_name: str = None, model: str = None) -> LLMProvider:
-    name = (provider_name or settings.LLM_PROVIDER or "groq").lower()
+    name = (provider_name or settings.LLM_PROVIDER or "gemini").lower()
     if name == "openrouter" and settings.OPENROUTER_API_KEY:
         return OpenRouterProvider(model=model)
     elif name == "gemini" and settings.GEMINI_API_KEY:
         return GeminiProvider(model=model)
     elif name == "groq" and settings.GROQ_API_KEY:
         return GroqProvider(model=model)
-    elif name == "ollama":
-        return OllamaProvider(model=model)
     else:
-        if settings.GROQ_API_KEY:
-            return GroqProvider(model=model)
-        elif settings.GEMINI_API_KEY:
+        if settings.GEMINI_API_KEY:
             return GeminiProvider(model=model)
         elif settings.OPENROUTER_API_KEY:
             return OpenRouterProvider(model=model)
+        elif settings.GROQ_API_KEY:
+            return GroqProvider(model=model)
         else:
-            return OllamaProvider(model=model)
+            raise ValueError("No LLM API key configured (GEMINI_API_KEY, OPENROUTER_API_KEY, or GROQ_API_KEY).")

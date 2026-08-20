@@ -18,7 +18,7 @@ export default function AnalystPanel({ repoId, onClose }: AnalystPanelProps) {
   const [parsedCitations, setParsedCitations] = useState<string[]>([])
   const [traces, setTraces] = useState<string[]>([])
   
-  const [provider, setProvider] = useState<'groq' | 'gemini' | 'openrouter' | 'ollama'>('gemini')
+  const [provider, setProvider] = useState<'groq' | 'gemini' | 'openrouter'>('gemini')
   const [error, setError] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
 
@@ -148,7 +148,6 @@ export default function AnalystPanel({ repoId, onClose }: AnalystPanelProps) {
             <option value="gemini">GEMINI :: 3.6-FLASH (FREE / VERIFIED)</option>
             <option value="openrouter">OPENROUTER :: LLAMA-3.3-70B (VERIFIED)</option>
             <option value="groq">GROQ :: LLAMA-3.3-70B</option>
-            <option value="ollama">OLLAMA :: LOCALHOST (LOCAL ONLY)</option>
           </select>
         </div>
       </div>

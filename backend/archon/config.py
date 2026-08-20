@@ -14,13 +14,13 @@ class Settings(BaseSettings):
     NEO4J_DATABASE: str = "neo4j"  # AuraDB uses 'neo4j' as default; set to instance name if needed
     
     # LLM
-    LLM_PROVIDER: str = "ollama"
+    LLM_PROVIDER: str = "gemini"
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     OPENROUTER_API_KEY: Optional[str] = None
     GEMINI_API_KEY: Optional[str] = None
     GROQ_API_KEY: Optional[str] = None
     ANTHROPIC_API_KEY: Optional[str] = None
-    LLM_MODEL: str = "llama3"
+    LLM_MODEL: str = "gemini-3.6-flash"
     LLM_TEMPERATURE: float = 0.1
 
     # GitHub OAuth
@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     FRONTEND_URL: str = "https://nohcra.netlify.app"
     
     # Embeddings
-    EMBEDDING_PROVIDER: str = "ollama"
+    EMBEDDING_PROVIDER: str = "gemini"
     EMBEDDING_MODEL: str = "nomic-embed-text"
     EMBEDDING_DIMENSIONS: int = 768
     
