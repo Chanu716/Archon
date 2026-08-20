@@ -207,79 +207,7 @@ export default function LandingOnboardingPage() {
         </div>
       </section>
 
-      {/* Core Capabilities Deck */}
-      <section className="px-6 py-12 max-w-6xl mx-auto w-full space-y-8">
-        <div className="text-center space-y-2">
-          <div className="font-pixel text-xs text-cyan-400 uppercase">[ SUBSYSTEM_CAPABILITIES ]</div>
-          <h2 className="font-pixel text-xl sm:text-2xl text-white">FOUR PILLARS OF ARCHON INTELLIGENCE</h2>
-        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Card 1 */}
-          <div className="pixel-box p-6 space-y-3 bg-neutral-950/40 border border-neutral-800 hover:border-cyan-400 transition group">
-            <div className="flex items-center gap-3">
-              <div className="p-2 border border-cyan-400/40 bg-cyan-950/30 text-cyan-400">
-                <Network className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="font-pixel text-sm text-white group-hover:text-cyan-300 transition">3D COSMIC GALAXY & 2D PLANAR</h3>
-                <span className="text-[10px] text-neutral-500 font-mono">Force-Directed Knowledge Graph</span>
-              </div>
-            </div>
-            <p className="text-xs text-neutral-400 leading-relaxed font-mono">
-              Explore your architecture in full 3D space with orbits, hierarchical layouts, caller/callee tracing, and real-time semantic zoom.
-            </p>
-          </div>
-
-          {/* Card 2 */}
-          <div className="pixel-box p-6 space-y-3 bg-neutral-950/40 border border-neutral-800 hover:border-cyan-400 transition group">
-            <div className="flex items-center gap-3">
-              <div className="p-2 border border-cyan-400/40 bg-cyan-950/30 text-cyan-400">
-                <Zap className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="font-pixel text-sm text-white group-hover:text-cyan-300 transition">REACT MULTI-HOP AI ANALYST</h3>
-                <span className="text-[10px] text-neutral-500 font-mono">Tool-Grounded LLM Reasoning Agent</span>
-              </div>
-            </div>
-            <p className="text-xs text-neutral-400 leading-relaxed font-mono">
-              AI Analyst executes AST queries, code extraction, and Neo4j traversals to deliver zero-hallucination code reviews and refactoring plans.
-            </p>
-          </div>
-
-          {/* Card 3 */}
-          <div className="pixel-box p-6 space-y-3 bg-neutral-950/40 border border-neutral-800 hover:border-cyan-400 transition group">
-            <div className="flex items-center gap-3">
-              <div className="p-2 border border-cyan-400/40 bg-cyan-950/30 text-cyan-400">
-                <ShieldAlert className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="font-pixel text-sm text-white group-hover:text-cyan-300 transition">MUTATION BLAST RADIUS SIMULATOR</h3>
-                <span className="text-[10px] text-neutral-500 font-mono">Deterministic Dependency Propagation</span>
-              </div>
-            </div>
-            <p className="text-xs text-neutral-400 leading-relaxed font-mono">
-              Simulate breaking changes before merging. Trace upstream callers, downstream callees, and impacted files across depth 1 to 10.
-            </p>
-          </div>
-
-          {/* Card 4 */}
-          <div className="pixel-box p-6 space-y-3 bg-neutral-950/40 border border-neutral-800 hover:border-cyan-400 transition group">
-            <div className="flex items-center gap-3">
-              <div className="p-2 border border-cyan-400/40 bg-cyan-950/30 text-cyan-400">
-                <GitBranch className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="font-pixel text-sm text-white group-hover:text-cyan-300 transition">AST SNAPSHOT DRIFT & HEALTH</h3>
-                <span className="text-[10px] text-neutral-500 font-mono">Historical Architectural Degradation</span>
-              </div>
-            </div>
-            <p className="text-xs text-neutral-400 leading-relaxed font-mono">
-              Track cyclomatic complexity, circular dependencies, coupling spikes, and structural mutations between git commits.
-            </p>
-          </div>
-        </div>
-      </section>
 
       {/* 3-Step Quick Start Protocol */}
       <section className="px-6 py-12 max-w-6xl mx-auto w-full space-y-6">
