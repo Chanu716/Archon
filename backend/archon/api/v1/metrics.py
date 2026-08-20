@@ -31,7 +31,6 @@ async def get_repository_health(repository_id: uuid.UUID, db: AsyncSession = Dep
     )
     all_metrics = metrics_result.scalars().all()
     
-    # Calculate aggregates
     total_functions = len(set(m.entity_name for m in all_metrics if m.entity_type == "Function"))
     total_classes = len(set(m.entity_name for m in all_metrics if m.entity_type == "Class"))
     total_modules = len(set(m.entity_name for m in all_metrics if m.entity_type == "Module"))
@@ -43,10 +42,31 @@ async def get_repository_health(repository_id: uuid.UUID, db: AsyncSession = Dep
     cycles = [m.metric_value for m in all_metrics if m.metric_name == "circular_dependencies"]
     total_cycles = sum(cycles)
     
-    high_complexity_count = len([c for c in complexities if c > 10]) # Arbitrary threshold for MVP
+    high_complexity_count = len([c for c in complexities if c > 10])
     
     couplings = [m.metric_value for m in all_metrics if m.metric_name == "outgoing_coupling"]
-    high_coupling_count = len([c for c in couplings if c > 5]) # Arbitrary threshold for MVP
+    high_coupling_count = len([c for c in couplings if c > 5])
+
+    # If Postgres metrics table is unpopulated, query the active Neo4j graph directly
+    if total_modules == 0 and total_classes == 0 and total_functions == 0:
+        try:
+            from archon.db.neo4j import neo4j_driver
+            count_q = """
+            MATCH (m:Module {snapshot_id: $snapshot_id}) WITH count(m) as modules
+            MATCH (c:Class {snapshot_id: $snapshot_id}) WITH modules, count(c) as classes
+            MATCH (f:Function {snapshot_id: $snapshot_id})
+            RETURN modules, classes, count(f) as functions, avg(coalesce(f.cyclomatic_complexity, 1)) as avg_cc
+            """
+            async with neo4j_driver.session() as session:
+                res = await session.run(count_q, snapshot_id=str(snapshot.id))
+                rec = await res.single()
+                if rec:
+                    total_modules = rec["modules"]
+                    total_classes = rec["classes"]
+                    total_functions = rec["functions"]
+                    avg_complexity = rec["avg_cc"] or 1.0
+        except Exception:
+            pass
     
     return {
         "repository_id": repository_id,

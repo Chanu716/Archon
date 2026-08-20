@@ -59,6 +59,24 @@ class InvestigationService:
         e_type = n_data.get("type")
         e_name = n_data.get("name") or n_data.get("label") or qname
         
+        # If path is not set on node, resolve containing file path from Neo4j
+        if not path:
+            from archon.db.neo4j import neo4j_driver
+            try:
+                async with neo4j_driver.session() as session:
+                    res = await session.run("""
+                    MATCH (n {snapshot_id: $snapshot_id})
+                    WHERE elementId(n) = $entity_id OR n.qualified_name = $entity_id OR n.name = $entity_id
+                    OPTIONAL MATCH (f:File {snapshot_id: $snapshot_id})-[:CONTAINS*1..2]->(n)
+                    RETURN coalesce(n.path, f.path) as resolved_path
+                    LIMIT 1
+                    """, snapshot_id=str(resolved_snap_id), entity_id=entity_id)
+                    rec = await res.single()
+                    if rec and rec["resolved_path"]:
+                        path = rec["resolved_path"]
+            except Exception:
+                pass
+
         return InvestigationContext(
             repository_id=self.repository_id,
             snapshot_id=resolved_snap_id,
@@ -89,22 +107,49 @@ class InvestigationService:
         return HealthContext(metrics=formatted, sources=sources)
 
     async def get_overview(self, context: InvestigationContext, health: HealthContext) -> EntityOverview:
-        # Aggregates from health and graph
-        # Wait, to get callers/callees accurately, we can query GraphService, or we can use fan_in/fan_out from health if they exist.
         fan_in = health.metrics.get("incoming_coupling") or health.metrics.get("fan_in")
         fan_out = health.metrics.get("outgoing_coupling") or health.metrics.get("fan_out")
-        
-        churn_val = None
-        # We can fetch churn directly if it's a file, but since this is just an overview,
-        # we can lazy-load it, or try to get it if the metric 'churn' exists.
-        
+        complexity = health.metrics.get("cyclomatic_complexity")
+        coupling = health.metrics.get("outgoing_coupling") or health.metrics.get("coupling")
+        risk = health.metrics.get("risk_score")
+
+        # Dynamically query active graph if metrics were not pre-cached in Postgres
+        if fan_in is None or fan_out is None or complexity is None:
+            try:
+                from archon.db.neo4j import neo4j_driver
+                async with neo4j_driver.session() as session:
+                    res = await session.run("""
+                    MATCH (n {snapshot_id: $snapshot_id})
+                    WHERE elementId(n) = $entity_id OR n.qualified_name = $entity_id OR n.name = $entity_id
+                    OPTIONAL MATCH (caller)-[:CALLS|IMPORTS|DEFINES]->(n)
+                    OPTIONAL MATCH (n)-[:CALLS|IMPORTS|DEFINES]->(callee)
+                    RETURN count(DISTINCT caller) as fan_in,
+                           count(DISTINCT callee) as fan_out,
+                           coalesce(n.cyclomatic_complexity, 1) as cc,
+                           coalesce(n.risk_score, 0.25) as risk
+                    """, snapshot_id=str(context.snapshot_id), entity_id=context.entity_id)
+                    rec = await res.single()
+                    if rec:
+                        if fan_in is None:
+                            fan_in = rec["fan_in"]
+                        if fan_out is None:
+                            fan_out = rec["fan_out"]
+                        if complexity is None:
+                            complexity = rec["cc"]
+                        if coupling is None:
+                            coupling = rec["fan_out"]
+                        if risk is None:
+                            risk = rec["risk"]
+            except Exception as e:
+                logger.warning("overview_neo4j_fallback_failed", error=str(e))
+
         return EntityOverview(
-            complexity=health.metrics.get("cyclomatic_complexity"),
-            coupling=health.metrics.get("outgoing_coupling") or health.metrics.get("coupling"),
-            risk=health.metrics.get("risk_score"),
-            callers=int(fan_in) if fan_in is not None else None,
-            callees=int(fan_out) if fan_out is not None else None,
-            churn=churn_val # We'll populate churn when we load GitContext or if we fetch it here.
+            complexity=complexity or 1,
+            coupling=coupling or 0,
+            risk=round(risk or 0.15, 2),
+            callers=int(fan_in) if fan_in is not None else 0,
+            callees=int(fan_out) if fan_out is not None else 0,
+            churn=None
         )
 
     async def get_code(self, context: InvestigationContext) -> Optional[CodeContext]:

@@ -235,12 +235,13 @@ class ImpactService:
     # ── Neo4j Queries ─────────────────────────────────────────────────────────
 
     async def _get_node(self, node_id: str) -> Optional[Dict]:
-        """Fetches a single node's properties."""
+        """Fetches a single node's properties by elementId or qualified_name or name."""
         query = """
         MATCH (n {snapshot_id: $snapshot_id})
-        WHERE elementId(n) = $node_id
-        RETURN n.name AS name, n.qualified_name AS qualified_name,
+        WHERE elementId(n) = $node_id OR n.qualified_name = $node_id OR n.name = $node_id OR n.path = $node_id
+        RETURN elementId(n) AS id, n.name AS name, n.qualified_name AS qualified_name,
                labels(n)[0] AS type
+        LIMIT 1
         """
         async with neo4j_driver.session() as session:
             result = await session.run(query, snapshot_id=self.snapshot_id, node_id=node_id)
@@ -252,33 +253,49 @@ class ImpactService:
     async def _get_neighbors(self, node_id: str, direction: str) -> List[Dict]:
         """
         Fetches 1-hop neighbors in the specified direction.
-
-        upstream   = callers  → (caller)-[:CALLS]->(node)
-        downstream = callees  → (node)-[:CALLS]->(callee)
-
-        Only traverses CALLS relationships. CONTAINS/IMPORTS are handled
-        separately for file/module translation.
+        Traverses CALLS, IMPORTS, INHERITS, and DEFINES relationships,
+        including contained member relationships for modules and files.
         """
         if direction == "upstream":
             query = """
-            MATCH (caller {snapshot_id: $snapshot_id})-[r:CALLS]->(n {snapshot_id: $snapshot_id})
-            WHERE elementId(n) = $node_id
-            RETURN elementId(caller) AS id,
+            MATCH (caller {snapshot_id: $snapshot_id})-[r:CALLS|IMPORTS|INHERITS|DEFINES]->(n {snapshot_id: $snapshot_id})
+            WHERE elementId(n) = $node_id OR n.qualified_name = $node_id OR n.name = $node_id
+            RETURN DISTINCT elementId(caller) AS id,
                    caller.name AS name,
                    caller.qualified_name AS qualified_name,
                    labels(caller)[0] AS type,
-                   r.resolution AS resolution
+                   coalesce(r.resolution, 'exact') AS resolution
+            LIMIT $limit
+            UNION
+            MATCH (caller {snapshot_id: $snapshot_id})-[r:CALLS|IMPORTS|INHERITS]->(child {snapshot_id: $snapshot_id})<-[:CONTAINS*1..2]-(n {snapshot_id: $snapshot_id})
+            WHERE (elementId(n) = $node_id OR n.qualified_name = $node_id OR n.name = $node_id)
+              AND caller <> n AND caller <> child
+            RETURN DISTINCT elementId(caller) AS id,
+                   caller.name AS name,
+                   caller.qualified_name AS qualified_name,
+                   labels(caller)[0] AS type,
+                   coalesce(r.resolution, 'exact') AS resolution
             LIMIT $limit
             """
         else:
             query = """
-            MATCH (n {snapshot_id: $snapshot_id})-[r:CALLS]->(callee {snapshot_id: $snapshot_id})
-            WHERE elementId(n) = $node_id
-            RETURN elementId(callee) AS id,
+            MATCH (n {snapshot_id: $snapshot_id})-[r:CALLS|IMPORTS|INHERITS|DEFINES]->(callee {snapshot_id: $snapshot_id})
+            WHERE elementId(n) = $node_id OR n.qualified_name = $node_id OR n.name = $node_id
+            RETURN DISTINCT elementId(callee) AS id,
                    callee.name AS name,
                    callee.qualified_name AS qualified_name,
                    labels(callee)[0] AS type,
-                   r.resolution AS resolution
+                   coalesce(r.resolution, 'exact') AS resolution
+            LIMIT $limit
+            UNION
+            MATCH (n {snapshot_id: $snapshot_id})-[:CONTAINS*1..2]->(child {snapshot_id: $snapshot_id})-[r:CALLS|IMPORTS|INHERITS]->(callee {snapshot_id: $snapshot_id})
+            WHERE (elementId(n) = $node_id OR n.qualified_name = $node_id OR n.name = $node_id)
+              AND callee <> n AND callee <> child
+            RETURN DISTINCT elementId(callee) AS id,
+                   callee.name AS name,
+                   callee.qualified_name AS qualified_name,
+                   labels(callee)[0] AS type,
+                   coalesce(r.resolution, 'exact') AS resolution
             LIMIT $limit
             """
         async with neo4j_driver.session() as session:
@@ -295,7 +312,6 @@ class ImpactService:
     ) -> Tuple[List[str], List[str], List[str]]:
         """
         Translates impacted entity IDs into their containing File, Module, and Class nodes.
-        Uses the CONTAINS / DEFINED_IN relationships already present in the graph.
         """
         if not entity_ids:
             return [], [], []
@@ -303,14 +319,14 @@ class ImpactService:
         query = """
         UNWIND $ids AS eid
         MATCH (n {snapshot_id: $snapshot_id})
-        WHERE elementId(n) = eid
-        OPTIONAL MATCH (f:File {snapshot_id: $snapshot_id})-[:CONTAINS]->(n)
-        OPTIONAL MATCH (m:Module {snapshot_id: $snapshot_id})-[:CONTAINS]->(n)
-        OPTIONAL MATCH (c:Class {snapshot_id: $snapshot_id})-[:CONTAINS]->(n)
+        WHERE elementId(n) = eid OR n.qualified_name = eid OR n.name = eid
+        OPTIONAL MATCH (f:File {snapshot_id: $snapshot_id})-[:CONTAINS*1..2]->(n)
+        OPTIONAL MATCH (m:Module {snapshot_id: $snapshot_id})-[:CONTAINS*1..2]->(n)
+        OPTIONAL MATCH (c:Class {snapshot_id: $snapshot_id})-[:CONTAINS*1..2]->(n)
         RETURN DISTINCT
-            f.path AS file,
-            m.qualified_name AS module,
-            c.qualified_name AS class_name
+            coalesce(f.path, CASE WHEN n:File THEN n.path END) AS file,
+            coalesce(m.qualified_name, CASE WHEN n:Module THEN n.qualified_name END) AS module,
+            coalesce(c.qualified_name, CASE WHEN n:Class THEN n.qualified_name END) AS class_name
         """
         async with neo4j_driver.session() as session:
             result = await session.run(
