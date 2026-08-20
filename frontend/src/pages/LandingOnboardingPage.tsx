@@ -1,9 +1,7 @@
-﻿import React, { useState, useEffect } from 'react'
+﻿import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Terminal,
-  Cpu,
-  Layers,
   Network,
   Zap,
   ShieldAlert,
@@ -11,29 +9,37 @@ import {
   Sparkles,
   GitBranch,
   Play,
-  Box,
-  Code2,
-  Database,
-  Activity,
-  CheckCircle2
+  Activity
 } from 'lucide-react'
 
 export default function LandingOnboardingPage() {
   const navigate = useNavigate()
   const [activeCommand, setActiveCommand] = useState<'galaxy' | 'blast' | 'analyst' | 'drift'>('galaxy')
-  const [isScrolled, setIsScrolled] = useState(false)
+  const [heroVisible, setHeroVisible] = useState(true)
+  const heroButtonRef = useRef<HTMLButtonElement | null>(null)
 
   useEffect(() => {
-    const handleScroll = () => {
-      if (window.scrollY > 260) {
-        setIsScrolled(true)
-      } else {
-        setIsScrolled(false)
-      }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setHeroVisible(entry.isIntersecting)
+      },
+      { threshold: 0.1 }
+    )
+
+    if (heroButtonRef.current) {
+      observer.observe(heroButtonRef.current)
     }
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
+
+    return () => observer.disconnect()
   }, [])
+
+  const handleExploreClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    const target = document.getElementById('interactive-sandbox')
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }
 
   const commands = {
     galaxy: {
@@ -75,9 +81,26 @@ export default function LandingOnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white font-mono crt-grid flex flex-col scroll-smooth selection:bg-cyan-500 selection:text-black">
-      {/* Top Header Bar (Scrolls with page & smoothly unveils vault button when hero is scrolled past) */}
-      <header className="border-b-2 border-white bg-black/90 sticky top-0 z-50 px-6 py-3.5 flex items-center justify-between transition-colors duration-300 backdrop-blur-md">
+    <div className="min-h-screen bg-black text-white font-mono crt-grid flex flex-col selection:bg-cyan-500 selection:text-black relative">
+      {/* Floating "In The Air" Launch Vault Button (Only appears when main hero button is scrolled out of view) */}
+      <div
+        className={`fixed top-5 right-6 z-50 transition-all duration-500 ease-out transform ${
+          !heroVisible
+            ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto shadow-[0_0_25px_rgba(6,182,212,0.8)]'
+            : 'opacity-0 -translate-y-4 scale-90 pointer-events-none'
+        }`}
+      >
+        <button
+          onClick={() => navigate('/repositories')}
+          className="pixel-btn-filled-cyan text-xs flex items-center gap-2 px-4 py-2 bg-cyan-400 text-black font-bold border-2 border-white hover:bg-cyan-300 hover:scale-105 active:scale-95 transition-transform"
+        >
+          <span>[ LAUNCH_VAULT ]</span>
+          <ArrowRight className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      {/* Natural Scrolling Navbar (Part of the page body, scrolls away naturally when scrolling down) */}
+      <header className="border-b-2 border-white bg-transparent px-6 py-4 flex items-center justify-between max-w-6xl w-full mx-auto">
         <div className="flex items-center gap-3">
           <img
             src="/logo.png"
@@ -93,25 +116,10 @@ export default function LandingOnboardingPage() {
             </div>
           </div>
         </div>
-
-        {/* Dynamic Launch Vault Button (Fades and slides in only when user scrolls down past the hero button) */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate('/repositories')}
-            className={`pixel-btn-filled-cyan text-xs flex items-center gap-2 px-3.5 py-1.5 transition-all duration-300 ease-out transform ${
-              isScrolled
-                ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto shadow-[0_0_15px_rgba(6,182,212,0.6)]'
-                : 'opacity-0 -translate-y-2 scale-95 pointer-events-none'
-            }`}
-          >
-            <span>[ LAUNCH_VAULT ]</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
       </header>
 
       {/* Hero Section */}
-      <section className="relative px-6 py-16 md:py-24 max-w-6xl mx-auto flex flex-col items-center text-center space-y-8 animate-fadeIn">
+      <section className="relative px-6 py-16 md:py-24 max-w-6xl mx-auto flex flex-col items-center text-center space-y-8">
         {/* Glow Emblem */}
         <div className="relative group cursor-pointer" onClick={() => navigate('/repositories')}>
           <div className="absolute -inset-4 bg-cyan-500/20 rounded-full blur-xl opacity-75 group-hover:opacity-100 transition duration-500 animate-pulse" />
@@ -124,7 +132,7 @@ export default function LandingOnboardingPage() {
 
         {/* Hero Title & Badges */}
         <div className="space-y-4 max-w-4xl">
-          <div className="inline-flex items-center gap-2 border border-cyan-400/50 bg-cyan-950/30 px-3 py-1 text-cyan-300 font-pixel text-[10px] uppercase tracking-wider transition-all duration-300">
+          <div className="inline-flex items-center gap-2 border border-cyan-400/50 bg-cyan-950/30 px-3 py-1 text-cyan-300 font-pixel text-[10px] uppercase tracking-wider">
             <Sparkles className="w-3 h-3 text-cyan-400 animate-spin" />
             [ DETERMINISTIC AST CODEBASE KNOWLEDGE GRAPH ]
           </div>
@@ -139,24 +147,25 @@ export default function LandingOnboardingPage() {
         {/* Primary Call to Actions */}
         <div className="flex flex-col sm:flex-row items-center gap-4 pt-2 w-full sm:w-auto justify-center">
           <button
+            ref={heroButtonRef}
             onClick={() => navigate('/repositories')}
             className="pixel-btn-filled-cyan text-sm px-7 py-3.5 flex items-center gap-2.5 w-full sm:w-auto justify-center shadow-[0_0_25px_rgba(6,182,212,0.5)] transform hover:scale-105 active:scale-95 transition-all duration-200"
           >
             <Terminal className="w-4 h-4" />
             <span>[ INITIALIZE_REPOSITORY_VAULT → ]</span>
           </button>
-          <a
-            href="#interactive-sandbox"
-            className="pixel-btn text-sm px-6 py-3.5 flex items-center gap-2 w-full sm:w-auto justify-center hover:border-cyan-400 hover:text-cyan-300 text-neutral-300 transform hover:scale-102 transition-all duration-200"
+          <button
+            onClick={handleExploreClick}
+            className="pixel-btn text-sm px-6 py-3.5 flex items-center gap-2 w-full sm:w-auto justify-center hover:border-cyan-400 hover:text-cyan-300 text-neutral-300 transform hover:scale-102 active:scale-95 transition-all duration-200 cursor-pointer"
           >
             <Activity className="w-4 h-4 text-cyan-400" />
             <span>[ EXPLORE_CAPABILITIES ↓ ]</span>
-          </a>
+          </button>
         </div>
       </section>
 
       {/* Interactive Command Sandbox */}
-      <section id="interactive-sandbox" className="px-6 py-12 max-w-6xl mx-auto w-full space-y-6 scroll-mt-20">
+      <section id="interactive-sandbox" className="px-6 py-12 max-w-6xl mx-auto w-full space-y-6 scroll-mt-6">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-2 border-b border-neutral-800 pb-3">
           <div>
             <div className="font-pixel text-xs text-cyan-400 uppercase">[ INTERACTIVE_COMMAND_MATRIX ]</div>

@@ -11,6 +11,10 @@
     --ring: 187 100% 50%;
   }
 
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
     background-color: #000000;
     color: #ffffff;
