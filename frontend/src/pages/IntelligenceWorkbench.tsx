@@ -42,8 +42,15 @@ export default function IntelligenceWorkbench() {
       let url = `${API_BASE}/${repoId}/investigation/${encodeURIComponent(entityId!)}/git`
       if (snapshotId) url += `?snapshot_id=${snapshotId}`
       const res = await fetch(url)
-      if (res.status === 404) return null
-      return res.json()
+      if (!res.ok) return { commit_count: 0, churn: 0, recent_commits: [] }
+      const data = await res.json()
+      return {
+        commit_count: data?.commit_count ?? 0,
+        churn: data?.churn ?? 0,
+        recent_commits: data?.recent_commits ?? [],
+        first_changed_at: data?.first_changed_at,
+        last_changed_at: data?.last_changed_at
+      }
     },
     enabled: !!base,
   })
@@ -56,7 +63,15 @@ export default function IntelligenceWorkbench() {
       if (snapshotId) url += `?snapshot_id=${snapshotId}`
       const res = await fetch(url)
       if (!res.ok) return { direct_callers: 0, indirect_callers: 0, direct_callees: 0, indirect_callees: 0, affected_entities: 0, graph: { nodes: [], edges: [] } }
-      return res.json()
+      const data = await res.json()
+      return {
+        direct_callers: data?.direct_callers ?? 0,
+        indirect_callers: data?.indirect_callers ?? 0,
+        direct_callees: data?.direct_callees ?? 0,
+        indirect_callees: data?.indirect_callees ?? 0,
+        affected_entities: data?.affected_entities ?? 0,
+        graph: data?.graph ?? { nodes: [], edges: [] }
+      }
     },
     enabled: !!base,
   })
@@ -69,11 +84,16 @@ export default function IntelligenceWorkbench() {
       if (snapshotId) url += `?snapshot_id=${snapshotId}`
       const res = await fetch(url)
       if (!res.ok) return { lifecycle: null, relationship_changes: [], drift_findings: [] }
-      return res.json()
+      const data = await res.json()
+      return {
+        lifecycle: data?.lifecycle ?? null,
+        relationship_changes: data?.relationship_changes ?? [],
+        drift_findings: data?.drift_findings ?? []
+      }
     },
     enabled: !!base,
   })
-  
+
   // 5. Lazy Semantic Context
   const { data: semantic } = useQuery<SemanticContext>({
     queryKey: ['investigation-semantic', repoId, entityId, snapshotId],
@@ -81,8 +101,11 @@ export default function IntelligenceWorkbench() {
       let url = `${API_BASE}/${repoId}/investigation/${encodeURIComponent(entityId!)}/semantic`
       if (snapshotId) url += `?snapshot_id=${snapshotId}`
       const res = await fetch(url)
-      if (res.status === 404) return null
-      return res.json()
+      if (!res.ok) return { related_entities: [] }
+      const data = await res.json()
+      return {
+        related_entities: data?.related_entities ?? []
+      }
     },
     enabled: !!base,
   })
@@ -220,7 +243,7 @@ export default function IntelligenceWorkbench() {
                   </div>
                   <div className="text-[10px] font-pixel text-neutral-500 uppercase mt-2">[ RECENT_REVISIONS ]</div>
                   <ul className="space-y-2 divide-y divide-neutral-900">
-                    {git.recent_commits.map(c => (
+                    {(git?.recent_commits ?? []).map(c => (
                       <li key={c.sha} className="pt-2">
                         <div className="font-mono text-cyan-400 text-[11px]">{c.sha.substring(0, 7)}</div>
                         <div className="text-neutral-200 truncate text-xs">{c.message}</div>
@@ -240,9 +263,9 @@ export default function IntelligenceWorkbench() {
                 <Activity className="w-3.5 h-3.5 text-green-400" />
                 <span>[ ENTITY_HEALTH_FACTORS ]</span>
               </div>
-              {base.health && Object.keys(base.health.metrics).length > 0 ? (
+              {base.health && Object.keys(base.health.metrics || {}).length > 0 ? (
                 <div className="space-y-1.5 text-xs">
-                  {Object.entries(base.health.metrics).map(([key, val]) => (
+                  {Object.entries(base.health.metrics || {}).map(([key, val]) => (
                     <div key={key} className="flex justify-between items-center py-1 border-b border-neutral-900">
                       <span className="text-neutral-400 uppercase text-[11px]">{key.replace(/_/g, ' ')}</span>
                       <span className="font-mono text-white font-bold">{typeof val === 'number' ? val.toFixed(2).replace('.00', '') : val}</span>
@@ -263,11 +286,11 @@ export default function IntelligenceWorkbench() {
               ) : (
                 <div className="grid grid-cols-2 gap-3">
                   <div className="border border-neutral-800 bg-neutral-950 p-3 text-center">
-                    <div className="text-xl font-bold font-mono text-amber-400">{impact.affected_entities}</div>
+                    <div className="text-xl font-bold font-mono text-amber-400">{impact.affected_entities ?? 0}</div>
                     <div className="text-[9px] font-pixel text-neutral-500 uppercase mt-1">AFFECTED_NODES</div>
                   </div>
                   <div className="border border-neutral-800 bg-neutral-950 p-3 text-center">
-                    <div className="text-xl font-bold font-mono text-cyan-400">{impact.direct_callers + impact.indirect_callers}</div>
+                    <div className="text-xl font-bold font-mono text-cyan-400">{(impact.direct_callers ?? 0) + (impact.indirect_callers ?? 0)}</div>
                     <div className="text-[9px] font-pixel text-neutral-500 uppercase mt-1">TOTAL_CALLERS</div>
                   </div>
                 </div>
@@ -327,11 +350,11 @@ export default function IntelligenceWorkbench() {
                 <div className="text-xs text-neutral-500">Querying vector embeddings…</div>
               ) : (
                 <ul className="space-y-2 text-xs">
-                  {semantic.related_entities.length > 0 ? semantic.related_entities.map((r, i) => (
+                  {(semantic.related_entities ?? []).length > 0 ? (semantic.related_entities ?? []).map((r, i) => (
                     <li key={i} className="flex justify-between items-center py-1 border-b border-neutral-900">
                       <div className="truncate flex-1 font-mono text-neutral-200">{r.name}</div>
                       <span className="pixel-tag-cyan text-[10px] shrink-0 font-mono ml-2">
-                        {(r.similarity * 100).toFixed(0)}%
+                        {((r.similarity ?? 0) * 100).toFixed(0)}%
                       </span>
                     </li>
                   )) : (

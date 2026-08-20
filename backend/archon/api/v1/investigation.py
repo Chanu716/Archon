@@ -41,8 +41,11 @@ async def get_investigation_git(
 ):
     """Lazy-loads the Git intelligence section."""
     service = InvestigationService(db, repository_id)
-    context = await service.get_context(entity_id, snapshot_id)
-    return await service.get_git(context)
+    try:
+        context = await service.get_context(entity_id, snapshot_id)
+        return await service.get_git(context)
+    except Exception:
+        return GitContext(commit_count=0, churn=0.0, recent_commits=[])
 
 
 @router.get("/{repository_id}/investigation/{entity_id}/impact", response_model=Optional[ImpactContext])
@@ -54,8 +57,15 @@ async def get_investigation_impact(
 ):
     """Lazy-loads the Impact intelligence section."""
     service = InvestigationService(db, repository_id)
-    context = await service.get_context(entity_id, snapshot_id)
-    return await service.get_impact(context)
+    try:
+        context = await service.get_context(entity_id, snapshot_id)
+        return await service.get_impact(context)
+    except Exception:
+        return ImpactContext(
+            direct_callers=0, indirect_callers=0,
+            direct_callees=0, indirect_callees=0,
+            affected_entities=0, graph={"nodes": [], "edges": []}
+        )
 
 
 @router.get("/{repository_id}/investigation/{entity_id}/evolution", response_model=Optional[EvolutionContext])
@@ -67,8 +77,11 @@ async def get_investigation_evolution(
 ):
     """Lazy-loads the Evolution timeline and drift findings."""
     service = InvestigationService(db, repository_id)
-    context = await service.get_context(entity_id, snapshot_id)
-    return await service.get_evolution(context)
+    try:
+        context = await service.get_context(entity_id, snapshot_id)
+        return await service.get_evolution(context)
+    except Exception:
+        return EvolutionContext(lifecycle=None, relationship_changes=[], drift_findings=[])
 
 
 @router.get("/{repository_id}/investigation/{entity_id}/semantic", response_model=Optional[SemanticContext])
@@ -80,5 +93,8 @@ async def get_investigation_semantic(
 ):
     """Lazy-loads Semantic relations using pgvector."""
     service = InvestigationService(db, repository_id)
-    context = await service.get_context(entity_id, snapshot_id)
-    return await service.get_semantic(context)
+    try:
+        context = await service.get_context(entity_id, snapshot_id)
+        return await service.get_semantic(context)
+    except Exception:
+        return SemanticContext(related_entities=[])
