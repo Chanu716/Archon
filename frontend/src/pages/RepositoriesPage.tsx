@@ -66,35 +66,23 @@ export default function RepositoriesPage() {
     <div className="min-h-screen bg-black text-white p-6 md:p-10 font-mono crt-grid">
       {/* Top Retro Terminal Header */}
       <div className="max-w-6xl mx-auto mb-8 border-b-2 border-white pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <Link
-            to="/"
-            className="text-xs text-neutral-400 hover:text-cyan-400 transition-colors inline-flex items-center gap-1 mb-2"
-          >
-            ← [ HOME // ONBOARDING ]
-          </Link>
-          <div className="flex items-center gap-3">
-            <img
-              src="/logo.png"
-              alt="Archon Logo"
-              className="w-9 h-9 object-contain filter drop-shadow-[0_0_10px_rgba(6,182,212,0.8)]"
-            />
-            <div>
-              <h1 className="font-pixel text-lg md:text-xl text-white tracking-wider">
-                ARCHON :: REPOSITORY_VAULT
-              </h1>
-              <p className="text-xs text-neutral-400 font-mono mt-0.5">
-                root://archon/system_registry • codebase graph intelligence
-              </p>
-            </div>
+        <div className="flex items-center gap-3">
+          <img
+            src="/logo.png"
+            alt="Archon Logo"
+            className="w-9 h-9 object-contain filter drop-shadow-[0_0_10px_rgba(6,182,212,0.8)]"
+          />
+          <div>
+            <h1 className="font-pixel text-lg md:text-xl text-white tracking-wider">
+              ARCHON :: REPOSITORY_VAULT
+            </h1>
+            <p className="text-xs text-neutral-400 font-mono mt-0.5">
+              root://archon/system_registry • codebase graph intelligence
+            </p>
           </div>
         </div>
 
         <div className="flex items-center gap-3 text-xs">
-          <div className="flex items-center gap-2 border border-neutral-800 bg-neutral-950 px-3 py-1.5 rounded-none">
-            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse shadow-glow-cyan" />
-            <span className="font-pixel text-cyan-400 text-[10px]">CORE: ONLINE</span>
-          </div>
           <div className="border border-neutral-800 bg-neutral-950 px-3 py-1.5 text-neutral-400">
             TOTAL_REPOS: <strong className="text-white font-mono">{repoList.length}</strong>
           </div>
