@@ -67,9 +67,11 @@ export default function RepositoriesPage() {
       {/* Top Retro Terminal Header */}
       <div className="max-w-6xl mx-auto mb-8 border-b-2 border-white pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-cyan-400 text-black font-pixel font-bold flex items-center justify-center text-sm shadow-pixel-sm">
-            A
-          </div>
+          <img
+            src="/logo.png"
+            alt="Archon Logo"
+            className="w-9 h-9 object-contain filter drop-shadow-[0_0_10px_rgba(6,182,212,0.8)]"
+          />
           <div>
             <h1 className="font-pixel text-lg md:text-xl text-white tracking-wider">
               ARCHON :: REPOSITORY_VAULT

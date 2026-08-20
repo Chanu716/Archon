@@ -279,6 +279,11 @@ export default function ArchitecturePage() {
             ← [ ESC ]
           </Link>
           <div className="flex items-center gap-2">
+            <img
+              src="/logo.png"
+              alt="Archon Logo"
+              className="w-5 h-5 object-contain filter drop-shadow-[0_0_6px_rgba(6,182,212,0.8)] inline-block"
+            />
             <span className="font-pixel text-xs text-white">
               {repo?.name ?? 'ARCHON'}
             </span>

@@ -54,6 +54,11 @@ export default function OverviewPage() {
             ← [ BACK_TO_REPOSITORIES ]
           </Link>
           <div className="flex items-center gap-3">
+            <img
+              src="/logo.png"
+              alt="Archon Logo"
+              className="w-7 h-7 object-contain filter drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]"
+            />
             <h1 className="font-pixel text-xl text-white tracking-wide">
               {repo.name}
             </h1>

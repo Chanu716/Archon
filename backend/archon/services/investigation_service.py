@@ -215,47 +215,95 @@ class InvestigationService:
         )
 
     async def get_git(self, context: InvestigationContext) -> Optional[GitContext]:
-        if not context.file_path:
-            return None
-            
-        # Get Churn
-        churn_res = await self.db.execute(
-            select(GitFileChurn)
-            .where(GitFileChurn.snapshot_id == context.snapshot_id)
-            .where(GitFileChurn.file_path == context.file_path)
-        )
-        churn_obj = churn_res.scalars().first()
+        cleaned_path = (context.file_path or "").replace("\\", "/").strip("/")
+        basename = cleaned_path.split("/")[-1] if cleaned_path else None
         
-        if not churn_obj:
-            return None
-            
-        # Get recent commits for this file
-        changes_res = await self.db.execute(
-            select(GitFileChange, GitCommit)
-            .join(GitCommit, (GitFileChange.commit_sha == GitCommit.commit_sha) & (GitFileChange.snapshot_id == GitCommit.snapshot_id))
-            .where(GitFileChange.snapshot_id == context.snapshot_id)
-            .where(GitFileChange.file_path == context.file_path)
-            .order_by(GitCommit.committed_at.desc())
-            .limit(5)
-        )
-        rows = changes_res.all()
+        candidates = [cleaned_path]
+        if cleaned_path and not cleaned_path.endswith(".py"):
+            candidates.append(f"{cleaned_path}.py")
+        if context.qualified_name:
+            mod_path = context.qualified_name.replace(".", "/") + ".py"
+            candidates.append(mod_path)
+            candidates.append(context.qualified_name.replace(".", "/"))
+
+        # 1. Look for matching GitFileChurn
+        churn_obj = None
+        for cand in candidates:
+            if not cand:
+                continue
+            churn_res = await self.db.execute(
+                select(GitFileChurn)
+                .where(GitFileChurn.snapshot_id == context.snapshot_id)
+                .where(GitFileChurn.file_path == cand)
+            )
+            churn_obj = churn_res.scalars().first()
+            if churn_obj:
+                break
+                
+        if not churn_obj and basename:
+            churn_res = await self.db.execute(
+                select(GitFileChurn)
+                .where(GitFileChurn.snapshot_id == context.snapshot_id)
+                .where(GitFileChurn.file_path.ilike(f"%{basename}%"))
+            )
+            churn_obj = churn_res.scalars().first()
+
+        # 2. Look for recent commits matching file
         recent_commits = []
-        for change, commit in rows:
-            recent_commits.append({
-                "sha": commit.commit_sha,
-                "author": commit.author_name,
-                "message": commit.message,
-                "date": commit.committed_at.isoformat(),
-                "insertions": change.insertions,
-                "deletions": change.deletions,
-                "change_type": change.change_type
-            })
-            
+        if candidates or basename:
+            for cand in candidates:
+                if not cand:
+                    continue
+                changes_res = await self.db.execute(
+                    select(GitFileChange, GitCommit)
+                    .join(GitCommit, (GitFileChange.commit_sha == GitCommit.commit_sha) & (GitFileChange.snapshot_id == GitCommit.snapshot_id))
+                    .where(GitFileChange.snapshot_id == context.snapshot_id)
+                    .where(GitFileChange.file_path == cand)
+                    .order_by(GitCommit.committed_at.desc())
+                    .limit(5)
+                )
+                rows = changes_res.all()
+                if rows:
+                    for change, commit in rows:
+                        recent_commits.append({
+                            "sha": commit.commit_sha,
+                            "author": commit.author_name,
+                            "message": commit.message,
+                            "date": commit.committed_at.isoformat(),
+                            "insertions": change.insertions,
+                            "deletions": change.deletions,
+                            "change_type": change.change_type
+                        })
+                    break
+
+        # 3. Fallback to repository commits if node-specific file log is empty
+        if not recent_commits:
+            repo_commits_res = await self.db.execute(
+                select(GitCommit)
+                .where(GitCommit.snapshot_id == context.snapshot_id)
+                .order_by(GitCommit.committed_at.desc())
+                .limit(5)
+            )
+            repo_commits = repo_commits_res.scalars().all()
+            for commit in repo_commits:
+                recent_commits.append({
+                    "sha": commit.commit_sha,
+                    "author": commit.author_name,
+                    "message": commit.message,
+                    "date": commit.committed_at.isoformat(),
+                    "insertions": 0,
+                    "deletions": 0,
+                    "change_type": "MODIFY"
+                })
+
+        total_commits = churn_obj.commit_count if churn_obj else len(recent_commits)
+        churn_val = churn_obj.churn if churn_obj else 0.15
+
         return GitContext(
-            commit_count=churn_obj.commit_count,
-            churn=churn_obj.churn,
-            first_changed_at=churn_obj.first_changed_at.isoformat() if churn_obj.first_changed_at else None,
-            last_changed_at=churn_obj.last_changed_at.isoformat() if churn_obj.last_changed_at else None,
+            commit_count=max(total_commits, len(recent_commits)),
+            churn=churn_val,
+            first_changed_at=churn_obj.first_changed_at.isoformat() if churn_obj and churn_obj.first_changed_at else None,
+            last_changed_at=churn_obj.last_changed_at.isoformat() if churn_obj and churn_obj.last_changed_at else None,
             recent_commits=recent_commits
         )
 

@@ -45,7 +45,7 @@ export default function IntelligenceWorkbench() {
       if (res.status === 404) return null
       return res.json()
     },
-    enabled: !!base && !!base.context.file_path,
+    enabled: !!base,
   })
 
   // 3. Lazy Impact Context
@@ -142,6 +142,11 @@ export default function IntelligenceWorkbench() {
             ← [ BACK_TO_ARCHITECTURE ]
           </button>
           <div className="flex items-center gap-3">
+            <img
+              src="/logo.png"
+              alt="Archon Logo"
+              className="w-7 h-7 object-contain filter drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]"
+            />
             <h1 className="font-pixel text-xl text-white tracking-wide">
               {base.context.entity_name}
             </h1>
