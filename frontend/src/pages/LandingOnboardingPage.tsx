@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+﻿import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Terminal,
@@ -21,6 +21,19 @@ import {
 export default function LandingOnboardingPage() {
   const navigate = useNavigate()
   const [activeCommand, setActiveCommand] = useState<'galaxy' | 'blast' | 'analyst' | 'drift'>('galaxy')
+  const [isScrolled, setIsScrolled] = useState(false)
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 260) {
+        setIsScrolled(true)
+      } else {
+        setIsScrolled(false)
+      }
+    }
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   const commands = {
     galaxy: {
@@ -62,9 +75,9 @@ export default function LandingOnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white font-mono crt-grid flex flex-col selection:bg-cyan-500 selection:text-black">
-      {/* Top Header Bar */}
-      <header className="border-b-2 border-white bg-black/90 sticky top-0 z-50 px-6 py-3.5 flex items-center justify-between">
+    <div className="min-h-screen bg-black text-white font-mono crt-grid flex flex-col scroll-smooth selection:bg-cyan-500 selection:text-black">
+      {/* Top Header Bar (Scrolls with page & smoothly unveils vault button when hero is scrolled past) */}
+      <header className="border-b-2 border-white bg-black/90 sticky top-0 z-50 px-6 py-3.5 flex items-center justify-between transition-colors duration-300 backdrop-blur-md">
         <div className="flex items-center gap-3">
           <img
             src="/logo.png"
@@ -81,10 +94,15 @@ export default function LandingOnboardingPage() {
           </div>
         </div>
 
+        {/* Dynamic Launch Vault Button (Fades and slides in only when user scrolls down past the hero button) */}
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate('/repositories')}
-            className="pixel-btn-filled-cyan text-xs flex items-center gap-2 px-3 py-1.5"
+            className={`pixel-btn-filled-cyan text-xs flex items-center gap-2 px-3.5 py-1.5 transition-all duration-300 ease-out transform ${
+              isScrolled
+                ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto shadow-[0_0_15px_rgba(6,182,212,0.6)]'
+                : 'opacity-0 -translate-y-2 scale-95 pointer-events-none'
+            }`}
           >
             <span>[ LAUNCH_VAULT ]</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -93,20 +111,20 @@ export default function LandingOnboardingPage() {
       </header>
 
       {/* Hero Section */}
-      <section className="relative px-6 py-16 md:py-24 max-w-6xl mx-auto flex flex-col items-center text-center space-y-8">
+      <section className="relative px-6 py-16 md:py-24 max-w-6xl mx-auto flex flex-col items-center text-center space-y-8 animate-fadeIn">
         {/* Glow Emblem */}
         <div className="relative group cursor-pointer" onClick={() => navigate('/repositories')}>
           <div className="absolute -inset-4 bg-cyan-500/20 rounded-full blur-xl opacity-75 group-hover:opacity-100 transition duration-500 animate-pulse" />
           <img
             src="/logo.png"
             alt="Archon Core"
-            className="relative w-24 h-24 md:w-32 md:h-32 object-contain filter drop-shadow-[0_0_25px_rgba(6,182,212,0.9)] transform group-hover:scale-105 transition-transform duration-300"
+            className="relative w-24 h-24 md:w-32 md:h-32 object-contain filter drop-shadow-[0_0_25px_rgba(6,182,212,0.9)] transform group-hover:scale-105 transition-transform duration-300 ease-out"
           />
         </div>
 
         {/* Hero Title & Badges */}
         <div className="space-y-4 max-w-4xl">
-          <div className="inline-flex items-center gap-2 border border-cyan-400/50 bg-cyan-950/30 px-3 py-1 text-cyan-300 font-pixel text-[10px] uppercase tracking-wider">
+          <div className="inline-flex items-center gap-2 border border-cyan-400/50 bg-cyan-950/30 px-3 py-1 text-cyan-300 font-pixel text-[10px] uppercase tracking-wider transition-all duration-300">
             <Sparkles className="w-3 h-3 text-cyan-400 animate-spin" />
             [ DETERMINISTIC AST CODEBASE KNOWLEDGE GRAPH ]
           </div>
@@ -119,17 +137,17 @@ export default function LandingOnboardingPage() {
         </div>
 
         {/* Primary Call to Actions */}
-        <div className="flex flex-col sm:flex-row items-center gap-4 pt-2">
+        <div className="flex flex-col sm:flex-row items-center gap-4 pt-2 w-full sm:w-auto justify-center">
           <button
             onClick={() => navigate('/repositories')}
-            className="pixel-btn-filled-cyan text-sm px-6 py-3 flex items-center gap-2.5 w-full sm:w-auto justify-center shadow-[0_0_20px_rgba(6,182,212,0.4)]"
+            className="pixel-btn-filled-cyan text-sm px-7 py-3.5 flex items-center gap-2.5 w-full sm:w-auto justify-center shadow-[0_0_25px_rgba(6,182,212,0.5)] transform hover:scale-105 active:scale-95 transition-all duration-200"
           >
             <Terminal className="w-4 h-4" />
             <span>[ INITIALIZE_REPOSITORY_VAULT → ]</span>
           </button>
           <a
             href="#interactive-sandbox"
-            className="pixel-btn text-sm px-6 py-3 flex items-center gap-2 w-full sm:w-auto justify-center hover:border-cyan-400 text-neutral-300"
+            className="pixel-btn text-sm px-6 py-3.5 flex items-center gap-2 w-full sm:w-auto justify-center hover:border-cyan-400 hover:text-cyan-300 text-neutral-300 transform hover:scale-102 transition-all duration-200"
           >
             <Activity className="w-4 h-4 text-cyan-400" />
             <span>[ EXPLORE_CAPABILITIES ↓ ]</span>
@@ -138,7 +156,7 @@ export default function LandingOnboardingPage() {
       </section>
 
       {/* Interactive Command Sandbox */}
-      <section id="interactive-sandbox" className="px-6 py-12 max-w-6xl mx-auto w-full space-y-6">
+      <section id="interactive-sandbox" className="px-6 py-12 max-w-6xl mx-auto w-full space-y-6 scroll-mt-20">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-2 border-b border-neutral-800 pb-3">
           <div>
             <div className="font-pixel text-xs text-cyan-400 uppercase">[ INTERACTIVE_COMMAND_MATRIX ]</div>
@@ -148,7 +166,7 @@ export default function LandingOnboardingPage() {
         </div>
 
         {/* Command Selector Buttons */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
           {[
             { id: 'galaxy', label: '3D_GALAXY', icon: Network },
             { id: 'blast', label: 'BLAST_RADIUS', icon: ShieldAlert },
@@ -158,20 +176,20 @@ export default function LandingOnboardingPage() {
             <button
               key={id}
               onClick={() => setActiveCommand(id as any)}
-              className={`pixel-box p-2.5 text-left flex items-center gap-2 transition ${
+              className={`pixel-box p-3 text-left flex items-center gap-2.5 transition-all duration-200 transform active:scale-95 cursor-pointer ${
                 activeCommand === id
-                  ? 'border-cyan-400 bg-cyan-950/30 text-cyan-300'
-                  : 'hover:border-neutral-600 text-neutral-400'
+                  ? 'border-cyan-400 bg-cyan-950/40 text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.3)] scale-[1.02]'
+                  : 'hover:border-neutral-600 text-neutral-400 hover:text-neutral-200'
               }`}
             >
-              <Icon className="w-4 h-4 shrink-0 text-cyan-400" />
-              <span className="font-pixel text-[10px]">{label}</span>
+              <Icon className={`w-4 h-4 shrink-0 transition-colors ${activeCommand === id ? 'text-cyan-400' : 'text-neutral-500'}`} />
+              <span className="font-pixel text-[10px] tracking-wider">{label}</span>
             </button>
           ))}
         </div>
 
         {/* Terminal Screen */}
-        <div className="pixel-box bg-black border-2 border-neutral-800 overflow-hidden font-mono text-xs shadow-2xl">
+        <div className="pixel-box bg-black border-2 border-neutral-800 overflow-hidden font-mono text-xs shadow-2xl transition-all duration-300">
           {/* Terminal Titlebar */}
           <div className="bg-neutral-950 px-4 py-2 border-b border-neutral-800 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -184,13 +202,13 @@ export default function LandingOnboardingPage() {
           </div>
 
           {/* Terminal Body */}
-          <div className="p-5 space-y-3 bg-neutral-950/80 min-h-[200px]">
-            <div className="flex items-center gap-2 text-cyan-400 font-bold">
+          <div className="p-5 space-y-3 bg-neutral-950/80 min-h-[200px] transition-all duration-300">
+            <div className="flex items-center gap-2 text-cyan-400 font-bold transition-all duration-150">
               <span className="text-neutral-500">$</span>
               <span>{commands[activeCommand].cmd}</span>
             </div>
 
-            <div className="space-y-1.5 text-neutral-300 pl-4 border-l-2 border-cyan-500/40">
+            <div className="space-y-1.5 text-neutral-300 pl-4 border-l-2 border-cyan-500/40 transition-opacity duration-300">
               {commands[activeCommand].output.map((line, idx) => (
                 <div key={idx} className="flex items-start gap-2 leading-relaxed">
                   <span className="text-cyan-400 select-none">▶</span>
@@ -207,18 +225,16 @@ export default function LandingOnboardingPage() {
         </div>
       </section>
 
-
-
       {/* 3-Step Quick Start Protocol */}
       <section className="px-6 py-12 max-w-6xl mx-auto w-full space-y-6">
-        <div className="border border-neutral-800 bg-neutral-950 p-6 md:p-8 space-y-6">
+        <div className="border border-neutral-800 bg-neutral-950 p-6 md:p-8 space-y-6 transition-all duration-300">
           <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
             <div className="font-pixel text-xs text-white uppercase">[ 3_STEP_ONBOARDING_PROTOCOL ]</div>
             <span className="text-[10px] text-cyan-400 font-mono">EFFORTLESS_ONBOARDING</span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs">
-            <div className="space-y-2 p-4 border border-neutral-800 bg-black/60">
+            <div className="space-y-2 p-4 border border-neutral-800 bg-black/60 hover:border-neutral-600 transition-colors">
               <div className="font-pixel text-cyan-400 text-sm">[ STEP 01 ]</div>
               <div className="font-bold text-white text-sm">Clone or Link Git Repository</div>
               <p className="text-neutral-400 font-mono">
@@ -226,7 +242,7 @@ export default function LandingOnboardingPage() {
               </p>
             </div>
 
-            <div className="space-y-2 p-4 border border-neutral-800 bg-black/60">
+            <div className="space-y-2 p-4 border border-neutral-800 bg-black/60 hover:border-neutral-600 transition-colors">
               <div className="font-pixel text-cyan-400 text-sm">[ STEP 02 ]</div>
               <div className="font-bold text-white text-sm">Automated AST Synthesis</div>
               <p className="text-neutral-400 font-mono">
@@ -234,7 +250,7 @@ export default function LandingOnboardingPage() {
               </p>
             </div>
 
-            <div className="space-y-2 p-4 border border-neutral-800 bg-black/60">
+            <div className="space-y-2 p-4 border border-neutral-800 bg-black/60 hover:border-neutral-600 transition-colors">
               <div className="font-pixel text-cyan-400 text-sm">[ STEP 03 ]</div>
               <div className="font-bold text-white text-sm">Explore & Investigate</div>
               <p className="text-neutral-400 font-mono">
@@ -246,7 +262,7 @@ export default function LandingOnboardingPage() {
           <div className="text-center pt-2">
             <button
               onClick={() => navigate('/repositories')}
-              className="pixel-btn-filled-cyan text-sm px-8 py-3.5 inline-flex items-center gap-2.5 shadow-[0_0_25px_rgba(6,182,212,0.5)]"
+              className="pixel-btn-filled-cyan text-sm px-8 py-3.5 inline-flex items-center gap-2.5 shadow-[0_0_25px_rgba(6,182,212,0.5)] transform hover:scale-105 active:scale-95 transition-all duration-200"
             >
               <Play className="w-4 h-4 fill-current" />
               <span>ENTER REPOSITORY VAULT NOW</span>
@@ -262,7 +278,7 @@ export default function LandingOnboardingPage() {
           <span>ARCHON :: DETERMINISTIC CODE KNOWLEDGE GRAPH & AI INTELLIGENCE</span>
         </div>
         <div className="flex items-center gap-4 text-[11px]">
-          <button onClick={() => navigate('/repositories')} className="hover:text-cyan-400 transition">
+          <button onClick={() => navigate('/repositories')} className="hover:text-cyan-400 transition-colors">
             [ VAULT ]
           </button>
           <span>•</span>
