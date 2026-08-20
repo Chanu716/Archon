@@ -1,4 +1,4 @@
-﻿import abc
+import abc
 import json
 from typing import AsyncGenerator, Dict, Any, List
 import structlog
@@ -146,7 +146,7 @@ class OpenRouterProvider(OpenAICompatibleProvider):
         super().__init__(
             base_url="https://openrouter.ai/api/v1",
             api_key=settings.OPENROUTER_API_KEY.strip(),
-            model=model or "meta-llama/llama-3.3-70b-instruct:free"
+            model=model or "meta-llama/llama-3.3-70b-instruct"
         )
 
 
@@ -157,7 +157,7 @@ class GeminiProvider(OpenAICompatibleProvider):
         super().__init__(
             base_url="https://generativelanguage.googleapis.com/v1beta/openai",
             api_key=settings.GEMINI_API_KEY.strip(),
-            model=model or "gemini-2.0-flash"
+            model=model or "gemini-3.6-flash"
         )
 
 
@@ -168,7 +168,7 @@ class GroqProvider(OpenAICompatibleProvider):
         super().__init__(
             base_url="https://api.groq.com/openai/v1",
             api_key=settings.GROQ_API_KEY.strip(),
-            model=model or "llama-3.1-70b-versatile"
+            model=model or "llama-3.3-70b-versatile"
         )
 
 
@@ -179,6 +179,27 @@ class OllamaProvider(OpenAICompatibleProvider):
             api_key="ollama",
             model=model or settings.LLM_MODEL or "llama3"
         )
+
+    async def _call_with_tools_once(self, messages: list, tools: list) -> dict:
+        try:
+            return await super()._call_with_tools_once(messages, tools)
+        except httpx.ConnectError:
+            raise ValueError(
+                "Cannot connect to Ollama at http://localhost:11434. "
+                "Ollama is only available when running Archon locally. "
+                "On cloud deployments (Render), please select Gemini 3.6 Flash, OpenRouter (Llama 3.3), or Groq."
+            )
+
+    async def _stream_answer(self, messages: list) -> AsyncGenerator[str, None]:
+        try:
+            async for token in super()._stream_answer(messages):
+                yield token
+        except httpx.ConnectError:
+            raise ValueError(
+                "Cannot connect to Ollama at http://localhost:11434. "
+                "Ollama is only available when running Archon locally. "
+                "On cloud deployments (Render), please select Gemini 3.6 Flash, OpenRouter (Llama 3.3), or Groq."
+            )
 
 
 def get_llm_provider(provider_name: str = None, model: str = None) -> LLMProvider:
