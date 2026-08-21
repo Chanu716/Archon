@@ -1,4 +1,5 @@
 import uuid
+import asyncio
 from typing import Callable, Awaitable, List
 import structlog
 from archon.pipeline.ingestion.github import clone_github_repo
@@ -52,10 +53,14 @@ async def run_analysis_pipeline(
             
         await progress_callback(job_id, 10.0, "parsing")
         
-        parsed_files: List[ParsedFile] = []
-        skip_records: List[SkipRecord] = []
+        total_files = len(ingestion_result.files)
+        for idx, file_path in enumerate(ingestion_result.files):
+            # Yield periodically to allow event loop to process health checks and polling requests
+            if idx % 5 == 0:
+                await asyncio.sleep(0)
+                progress_pct = 10.0 + (float(idx) / max(total_files, 1)) * 20.0
+                await progress_callback(job_id, progress_pct, "parsing")
 
-        for file_path in ingestion_result.files:
             extension = file_path.suffix
             parser = registry.get_parser(extension)
             if parser is None:
@@ -79,7 +84,7 @@ async def run_analysis_pipeline(
                 logger.error(
                     "parse_file_error",
                     path=str(file_path),
-                    language=parser.language,
+                    language=parser.language if parser else "unknown",
                     error=str(e)
                 )
                 skip_records.append(SkipRecord(
