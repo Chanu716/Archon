@@ -106,7 +106,7 @@ Archon provides two complementary AI intelligence layers with distinct purposes:
 │                          ARCHON FRONTEND                               │
 │        React 18 + Vite + TypeScript + Three.js WebGL + Cytoscape       │
 └───────────────────────────────────┬────────────────────────────────────┘
-                                    │ HTTP / SSE (Port 3000 -> 8000)
+                                    │ HTTP / SSE
                                     ▼
 ┌────────────────────────────────────────────────────────────────────────┐
 │                        ARCHON FASTAPI BACKEND                          │
@@ -118,7 +118,7 @@ Archon provides two complementary AI intelligence layers with distinct purposes:
 │              │                          │                    │         │
 │  ┌───────────▼─────────────┐  ┌─────────▼─────────┐  ┌───────▼───────┐ │
 │  │ Cross-Language Resolver │  │ AI Analyst Engine │  │Vector Service │ │
-│  │  (Route & Model Binding)│  │ (Gemini/GPT/Claude│  │  (pgvector)   │ │
+│  │  (Route & Model Binding)│  │ (Gemini / Ollama) │  │  (pgvector)   │ │
 │  └───────────┬─────────────┘  └───────────────────┘  └───────────────┘ │
 │              │                                                         │
 │  ┌───────────▼─────────────┐                                           │
@@ -131,8 +131,7 @@ Archon provides two complementary AI intelligence layers with distinct purposes:
             ▼                       ▼                       ▼
    ┌─────────────────┐    ┌──────────────────┐    ┌───────────────────┐
    │   PostgreSQL    │    │      Neo4j       │    │     pgvector      │
-   │ Metadata & Jobs │    │ Knowledge Graph  │    │ Code Embeddings   │
-   │   (Port 5432)   │    │   (Port 7687)    │    │    (Port 5432)    │
+   │ Metadata & Jobs │    │ Knowledge Graph  │    │  Code Embeddings  │
    └─────────────────┘    └──────────────────┘    └───────────────────┘
 ```
 
