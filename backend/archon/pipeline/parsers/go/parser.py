@@ -400,26 +400,23 @@ class GoVisitor:
             return 1
 
         complexity = 1
+        branch_types = {
+            "if_statement",
+            "for_statement",
+            "expression_case",
+            "type_case",
+            "communication_case",
+            "&&", "||"
+        }
 
-        def walk(n: Node):
-            nonlocal complexity
-            if n.type in (
-                "if_statement",
-                "for_statement",
-                "expression_case",
-                "type_case",
-                "communication_case",
-            ):
+        stack = [body_node]
+        while stack:
+            n = stack.pop()
+            if n.type in branch_types and n != body_node:
                 complexity += 1
-            elif n.type == "binary_expression":
-                op_node = n.child_by_field_name("operator")
-                if op_node and self._text(op_node) in ("&&", "||"):
-                    complexity += 1
-
             for child in n.children:
-                walk(child)
+                stack.append(child)
 
-        walk(body_node)
         return complexity
 
     def _calculate_nesting_depth(self, body_node: Optional[Node]) -> int:
@@ -427,7 +424,6 @@ class GoVisitor:
         if not body_node:
             return 0
 
-        max_depth = 0
         nesting_types = {
             "if_statement",
             "for_statement",
@@ -436,17 +432,16 @@ class GoVisitor:
             "select_statement",
         }
 
-        def walk(n: Node, current_depth: int):
-            nonlocal max_depth
-            is_branch = n.type in nesting_types
-            new_depth = current_depth + 1 if is_branch else current_depth
-            if new_depth > max_depth:
-                max_depth = new_depth
+        max_depth = 0
+        stack = [(body_node, 0)]
+        while stack:
+            curr, depth = stack.pop()
+            if curr.type in nesting_types and curr != body_node:
+                depth += 1
+            max_depth = max(max_depth, depth)
+            for child in curr.children:
+                stack.append((child, depth))
 
-            for child in n.children:
-                walk(child, new_depth)
-
-        walk(body_node, 0)
         return max_depth
 
 

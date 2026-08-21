@@ -20,7 +20,7 @@ from typing import List, Optional
 # IR: Call Resolution
 # ---------------------------------------------------------------------------
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class ResolvedCall:
     """Represents a call site discovered within a function body."""
     raw_name: str
@@ -33,7 +33,7 @@ class ResolvedCall:
 # IR: Parameters
 # ---------------------------------------------------------------------------
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class ParsedParameter:
     """A single parameter in a function or method signature."""
     name: str

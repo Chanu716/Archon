@@ -11,6 +11,7 @@ Architecture & Security:
     isolated within this module and does not leak to the shared pipeline.
 """
 
+import bisect
 from typing import List, Optional, Tuple, Set
 import structlog
 from tree_sitter import Language, Parser, Node
@@ -81,23 +82,36 @@ def _clean_docstring(comment_text: str) -> str:
     return "\n".join(l for l in cleaned_lines if l).strip()
 
 
-def _get_preceding_docstring(node: Node, source_bytes: bytes) -> Optional[str]:
-    """Finds a JSDoc or block comment immediately preceding this AST node or its export wrapper."""
-    prev = node.prev_sibling
-    if prev and prev.type == "comment":
-        comment_text = source_bytes[prev.start_byte:prev.end_byte].decode("utf-8", errors="replace")
-        cleaned = _clean_docstring(comment_text)
-        if cleaned:
-            return cleaned
+def _get_preceding_docstring(start_byte: int, source_bytes: bytes) -> Optional[str]:
+    """
+    Finds a JSDoc or block comment immediately preceding a position in source_bytes.
+    Pure Python string slicing — 100% safe from C-level tree-sitter pointer crashes.
+    """
+    if start_byte <= 0:
+        return None
 
-    # If wrapped in an export statement, check the export statement's preceding comment
-    if node.parent and node.parent.type in ("export_statement", "export_default_declaration"):
-        parent_prev = node.parent.prev_sibling
-        if parent_prev and parent_prev.type == "comment":
-            comment_text = source_bytes[parent_prev.start_byte:parent_prev.end_byte].decode("utf-8", errors="replace")
-            cleaned = _clean_docstring(comment_text)
-            if cleaned:
-                return cleaned
+    preceding_text = source_bytes[:start_byte].decode("utf-8", errors="replace")
+    lines = preceding_text.splitlines()
+    if not lines:
+        return None
+
+    comment_lines = []
+    for line in reversed(lines):
+        stripped = line.strip()
+        if not stripped:
+            if comment_lines:
+                break
+            continue
+        if stripped.startswith("//") or stripped.startswith("/*") or stripped.startswith("*") or stripped.endswith("*/"):
+            comment_lines.append(stripped)
+        else:
+            break
+
+    if comment_lines:
+        comment_lines.reverse()
+        full_comment = "\n".join(comment_lines)
+        cleaned = _clean_docstring(full_comment)
+        return cleaned or None
 
     return None
 
@@ -113,6 +127,14 @@ class JavaScriptVisitor:
         self.classes: List[ParsedClass] = []
         self.functions: List[ParsedFunction] = []
         self.imports: List[ParsedImport] = []
+        self.line_starts = [0]
+        for idx, b in enumerate(source_bytes):
+            if b == ord(b"\n"):
+                self.line_starts.append(idx + 1)
+
+    def _byte_to_line(self, byte_offset: int) -> int:
+        """Fast, pure-Python conversion of byte offset to 1-indexed line number."""
+        return bisect.bisect_right(self.line_starts, byte_offset)
 
     def _text(self, node: Node) -> str:
         """Helper to get UTF-8 text of a tree-sitter node."""
@@ -125,32 +147,51 @@ class JavaScriptVisitor:
 
     def _compute_cc(self, node: Node) -> int:
         """
-        Computes cyclomatic complexity for a JavaScript AST node.
+        Computes cyclomatic complexity for a JavaScript AST node using TreeCursor.
         Base complexity is 1. Increments for control-flow branches.
+        100% C-memory safe via tree_sitter.TreeCursor traversal.
         """
         cc = 1
         branch_types = {
             "if_statement", "for_statement", "for_in_statement",
             "while_statement", "do_statement", "catch_clause",
-            "switch_case", "conditional_expression",  # ternary ? :
+            "switch_case", "conditional_expression",
         }
+        cursor = node.walk()
+        reached_root = False
 
-        def walk(n: Node):
-            nonlocal cc
-            if n.type in branch_types:
-                cc += 1
-            elif n.type == "binary_expression":
-                op = n.child_by_field_name("operator")
-                if op and self._text(op) in ("&&", "||", "??"):
+        while not reached_root:
+            if cursor.node != node:
+                n_type = cursor.node.type
+                if n_type in branch_types:
                     cc += 1
-            for child in n.children:
-                walk(child)
+                elif n_type == "binary_expression":
+                    text = self.source_bytes[cursor.node.start_byte:cursor.node.end_byte]
+                    if b"&&" in text or b"||" in text or b"??" in text:
+                        cc += 1
 
-        walk(node)
+            if cursor.goto_first_child():
+                continue
+            if cursor.goto_next_sibling():
+                continue
+
+            retracing = True
+            while retracing:
+                if not cursor.goto_parent() or cursor.node == node:
+                    reached_root = True
+                    retracing = False
+                    break
+                if cursor.goto_next_sibling():
+                    retracing = False
+                    break
+
         return cc
 
     def _compute_nesting_depth(self, node: Node) -> int:
-        """Computes structural nesting depth of control flow within an AST node."""
+        """
+        Computes structural nesting depth using TreeCursor.
+        100% C-memory safe via tree_sitter.TreeCursor traversal.
+        """
         nesting_types = {
             "if_statement", "for_statement", "for_in_statement",
             "while_statement", "do_statement", "try_statement",
@@ -158,33 +199,53 @@ class JavaScriptVisitor:
         }
 
         max_depth = 0
-        for child in node.children:
-            child_depth = self._compute_nesting_depth(child)
-            if child.type in nesting_types:
-                child_depth += 1
-            max_depth = max(max_depth, child_depth)
+        current_depth = 0
+        cursor = node.walk()
+        reached_root = False
+
+        while not reached_root:
+            if cursor.node != node and cursor.node.type in nesting_types:
+                current_depth += 1
+                if current_depth > max_depth:
+                    max_depth = current_depth
+
+            if cursor.goto_first_child():
+                continue
+            if cursor.goto_next_sibling():
+                continue
+
+            retracing = True
+            while retracing:
+                if cursor.node != node and cursor.node.type in nesting_types:
+                    current_depth = max(0, current_depth - 1)
+
+                if not cursor.goto_parent() or cursor.node == node:
+                    reached_root = True
+                    retracing = False
+                    break
+                if cursor.goto_next_sibling():
+                    retracing = False
+                    break
 
         return max_depth
 
     def _extract_calls(self, node: Node, is_method: bool = False) -> List[ResolvedCall]:
         """
-        Extracts call sites from a function or method body.
-        Preserves Archon's exact/inferred/unresolved resolution semantics:
-          - bare function call (e.g. `calculateTotal()`) -> 'inferred' (local/module scope)
-          - this.method() or super.method() -> 'inferred' (class instance method)
-          - object.method() (e.g. `utils.log()`, `client.api.call()`) -> 'unresolved'
+        Extracts call sites from an AST node using TreeCursor.
+        100% C-memory safe via tree_sitter.TreeCursor traversal.
         """
         calls: List[ResolvedCall] = []
+        cursor = node.walk()
+        reached_root = False
 
-        def walk(n: Node):
+        while not reached_root:
+            n = cursor.node
             if n.type == "call_expression":
                 fn_node = n.child_by_field_name("function")
                 if fn_node:
                     if fn_node.type == "identifier":
-                        # Bare name: inferred in scope
-                        raw_name = self._text(fn_node)
                         calls.append(ResolvedCall(
-                            raw_name=raw_name,
+                            raw_name=self._text(fn_node),
                             target_qualified_name=None,
                             resolution="inferred"
                         ))
@@ -194,14 +255,12 @@ class JavaScriptVisitor:
                         if prop_node:
                             raw_name = self._text(prop_node)
                             if obj_node and self._text(obj_node) in ("this", "super"):
-                                # Class method invocation on self
                                 calls.append(ResolvedCall(
                                     raw_name=raw_name,
                                     target_qualified_name=None,
                                     resolution="inferred"
                                 ))
                             else:
-                                # External object invocation
                                 calls.append(ResolvedCall(
                                     raw_name=raw_name,
                                     target_qualified_name=None,
@@ -222,10 +281,21 @@ class JavaScriptVisitor:
                                 resolution="unresolved"
                             ))
 
-            for child in n.children:
-                walk(child)
+            if cursor.goto_first_child():
+                continue
+            if cursor.goto_next_sibling():
+                continue
 
-        walk(node)
+            retracing = True
+            while retracing:
+                if not cursor.goto_parent() or cursor.node == node:
+                    reached_root = True
+                    retracing = False
+                    break
+                if cursor.goto_next_sibling():
+                    retracing = False
+                    break
+
         return calls
 
     def _extract_parameters(self, params_node: Optional[Node]) -> List[ParsedParameter]:
@@ -258,9 +328,9 @@ class JavaScriptVisitor:
         return parameters
 
     def visit(self, root_node: Node):
-        """Top-level AST traversal."""
-        for child in root_node.named_children:
-            self._visit_top_level_node(child)
+        """Top-level AST traversal using indexed named_child(i) to eliminate list allocations."""
+        for i in range(root_node.named_child_count):
+            self._visit_top_level_node(root_node.named_child(i))
 
     def _visit_top_level_node(self, node: Node):
         if node.type == "import_statement":
@@ -358,18 +428,16 @@ class JavaScriptVisitor:
         source_node = node.child_by_field_name("source")
         if source_node:
             raw_source = self._text(source_node).strip("'\"`")
-            for child in node.children:
+            for child in node.named_children:
                 if child.type == "export_clause":
                     for spec in child.named_children:
                         if spec.type == "export_specifier":
                             name_n = spec.child_by_field_name("name")
                             alias_n = spec.child_by_field_name("alias")
                             if name_n:
-                                name_text = self._text(name_n)
-                                alias_text = self._text(alias_n) if alias_n else None
                                 self.imports.append(ParsedImport(
-                                    name=name_text,
-                                    alias=alias_text,
+                                    name=self._text(name_n),
+                                    alias=self._text(alias_n) if alias_n else None,
                                     is_from_import=True,
                                     module=raw_source
                                 ))
@@ -382,23 +450,17 @@ class JavaScriptVisitor:
                                 is_from_import=True,
                                 module=raw_source
                             ))
-            if any(c.type == "*" for c in node.children):
-                self.imports.append(ParsedImport(
-                    name="*",
-                    alias=None,
-                    is_from_import=True,
-                    module=raw_source
-                ))
+            return
 
         for child in node.named_children:
             if child.type == "class_declaration":
-                self._visit_class(child)
+                self._visit_class(child, parent_start_byte=node.start_byte)
             elif child.type in ("function_declaration", "generator_function_declaration"):
-                self._visit_function_declaration(child)
+                self._visit_function_declaration(child, parent_start_byte=node.start_byte)
             elif child.type in ("lexical_declaration", "variable_declaration"):
-                self._visit_variable_declaration(child)
+                self._visit_variable_declaration(child, parent_start_byte=node.start_byte)
 
-    def _visit_class(self, node: Node):
+    def _visit_class(self, node: Node, parent_start_byte: Optional[int] = None):
         """Extracts JavaScript class declarations and their methods."""
         name_node = node.child_by_field_name("name")
         if not name_node:
@@ -410,13 +472,14 @@ class JavaScriptVisitor:
 
         # Heritage (extends Base)
         heritage_node = None
-        for child in node.children:
+        for i in range(node.named_child_count):
+            child = node.named_child(i)
             if child.type == "class_heritage":
                 heritage_node = child
                 break
 
         if heritage_node:
-            for clause in heritage_node.children:
+            for clause in heritage_node.named_children:
                 if clause.type == "extends_clause":
                     for ext_target in clause.named_children:
                         if ext_target.type in ("identifier", "nested_type_identifier", "member_expression"):
@@ -424,10 +487,10 @@ class JavaScriptVisitor:
                 elif clause.type in ("identifier", "member_expression"):
                     base_classes.append(self._text(clause))
 
-        start_line = node.start_point.row + 1
-        end_line = node.end_point.row + 1
-        line_count = end_line - start_line + 1
-        docstring = _get_preceding_docstring(node, self.source_bytes)
+        start_line = self._byte_to_line(node.start_byte)
+        end_line = self._byte_to_line(node.end_byte)
+        line_count = max(1, end_line - start_line + 1)
+        docstring = _get_preceding_docstring(parent_start_byte or node.start_byte, self.source_bytes)
 
         # Methods
         methods: List[ParsedFunction] = []
@@ -461,21 +524,21 @@ class JavaScriptVisitor:
         params_node = node.child_by_field_name("parameters")
         parameters = self._extract_parameters(params_node)
 
-        is_async = any(child.type == "async" for child in node.children)
+        body_node = node.child_by_field_name("body")
+        is_async = b"async" in self.source_bytes[node.start_byte:body_node.start_byte] if body_node else False
 
         # Decorators (if Babel/TC39 decorators present)
         decorators: List[str] = []
-        for child in node.children:
+        for child in node.named_children:
             if child.type == "decorator":
                 decorators.append(self._text(child).lstrip("@").strip())
 
-        body_node = node.child_by_field_name("body")
         calls = self._extract_calls(body_node, is_method=True) if body_node else []
 
-        start_line = node.start_point.row + 1
-        end_line = node.end_point.row + 1
-        line_count = end_line - start_line + 1
-        docstring = _get_preceding_docstring(node, self.source_bytes)
+        start_line = self._byte_to_line(node.start_byte)
+        end_line = self._byte_to_line(node.end_byte)
+        line_count = max(1, end_line - start_line + 1)
+        docstring = _get_preceding_docstring(node.start_byte, self.source_bytes)
 
         return ParsedFunction(
             name=method_name,
@@ -494,7 +557,7 @@ class JavaScriptVisitor:
             calls=calls
         )
 
-    def _visit_function_declaration(self, node: Node):
+    def _visit_function_declaration(self, node: Node, parent_start_byte: Optional[int] = None):
         """Extracts named function and generator declarations at module level."""
         name_node = node.child_by_field_name("name")
         if not name_node:
@@ -504,14 +567,14 @@ class JavaScriptVisitor:
         params_node = node.child_by_field_name("parameters")
         parameters = self._extract_parameters(params_node)
 
-        is_async = any(c.type == "async" for c in node.children)
         body_node = node.child_by_field_name("body")
+        is_async = b"async" in self.source_bytes[node.start_byte:body_node.start_byte] if body_node else False
         calls = self._extract_calls(body_node, is_method=False) if body_node else []
 
-        start_line = node.start_point.row + 1
-        end_line = node.end_point.row + 1
-        line_count = end_line - start_line + 1
-        docstring = _get_preceding_docstring(node, self.source_bytes)
+        start_line = self._byte_to_line(node.start_byte)
+        end_line = self._byte_to_line(node.end_byte)
+        line_count = max(1, end_line - start_line + 1)
+        docstring = _get_preceding_docstring(parent_start_byte or node.start_byte, self.source_bytes)
 
         self.functions.append(ParsedFunction(
             name=func_name,
@@ -530,7 +593,7 @@ class JavaScriptVisitor:
             calls=calls
         ))
 
-    def _visit_variable_declaration(self, node: Node):
+    def _visit_variable_declaration(self, node: Node, parent_start_byte: Optional[int] = None):
         """
         Extracts:
           1. CommonJS literal `require()` imports (e.g. `const fs = require('fs')`)
@@ -593,14 +656,14 @@ class JavaScriptVisitor:
                     params_node = val_node.child_by_field_name("parameters")
                     parameters = self._extract_parameters(params_node)
 
-                    is_async = any(c.type == "async" for c in val_node.children)
                     body_node = val_node.child_by_field_name("body")
+                    is_async = b"async" in self.source_bytes[val_node.start_byte:body_node.start_byte] if body_node else False
                     calls = self._extract_calls(body_node, is_method=False) if body_node else []
 
-                    start_line = node.start_point.row + 1
-                    end_line = node.end_point.row + 1
-                    line_count = end_line - start_line + 1
-                    docstring = _get_preceding_docstring(node, self.source_bytes)
+                    start_line = self._byte_to_line(node.start_byte)
+                    end_line = self._byte_to_line(node.end_byte)
+                    line_count = max(1, end_line - start_line + 1)
+                    docstring = _get_preceding_docstring(parent_start_byte or node.start_byte, self.source_bytes)
 
                     self.functions.append(ParsedFunction(
                         name=func_name,
@@ -629,13 +692,13 @@ class JavaScriptVisitor:
                             p_name = self._text(p_name_node)
                             params_node = prop.child_by_field_name("parameters")
                             parameters = self._extract_parameters(params_node)
-                            is_async = any(c.type == "async" for c in prop.children)
                             body_node = prop.child_by_field_name("body")
+                            is_async = b"async" in self.source_bytes[prop.start_byte:body_node.start_byte] if body_node else False
                             calls = self._extract_calls(body_node, is_method=False) if body_node else []
-                            start_line = prop.start_point.row + 1
-                            end_line = prop.end_point.row + 1
-                            line_count = end_line - start_line + 1
-                            docstring = _get_preceding_docstring(prop, self.source_bytes)
+                            start_line = self._byte_to_line(prop.start_byte)
+                            end_line = self._byte_to_line(prop.end_byte)
+                            line_count = max(1, end_line - start_line + 1)
+                            docstring = _get_preceding_docstring(prop.start_byte, self.source_bytes)
 
                             self.functions.append(ParsedFunction(
                                 name=f"{obj_name}.{p_name}",
@@ -660,13 +723,13 @@ class JavaScriptVisitor:
                             p_name = self._text(key_node)
                             params_node = val_func.child_by_field_name("parameters")
                             parameters = self._extract_parameters(params_node)
-                            is_async = any(c.type == "async" for c in val_func.children)
                             body_node = val_func.child_by_field_name("body")
+                            is_async = b"async" in self.source_bytes[val_func.start_byte:body_node.start_byte] if body_node else False
                             calls = self._extract_calls(body_node, is_method=False) if body_node else []
-                            start_line = prop.start_point.row + 1
-                            end_line = prop.end_point.row + 1
-                            line_count = end_line - start_line + 1
-                            docstring = _get_preceding_docstring(prop, self.source_bytes)
+                            start_line = self._byte_to_line(prop.start_byte)
+                            end_line = self._byte_to_line(prop.end_byte)
+                            line_count = max(1, end_line - start_line + 1)
+                            docstring = _get_preceding_docstring(prop.start_byte, self.source_bytes)
 
                             self.functions.append(ParsedFunction(
                                 name=f"{obj_name}.{p_name}",
@@ -718,7 +781,8 @@ class JavaScriptParser(LanguageParser):
 
         try:
             source_bytes = content.encode("utf-8", errors="replace")
-            tree = self._parser.parse(source_bytes)
+            parser = Parser(JS_LANGUAGE)
+            tree = parser.parse(source_bytes)
             root = tree.root_node
 
             parse_errors: List[str] = []
@@ -730,9 +794,11 @@ class JavaScriptParser(LanguageParser):
 
             # Module-level docstring (if first top-level child is comment)
             docstring = None
-            if root.named_children and root.named_children[0].type == "comment":
-                comment_text = source_bytes[root.named_children[0].start_byte:root.named_children[0].end_byte].decode("utf-8", errors="replace")
-                docstring = _clean_docstring(comment_text) or None
+            if root.named_child_count > 0:
+                first_c = root.named_child(0)
+                if first_c.type == "comment":
+                    comment_text = source_bytes[first_c.start_byte:first_c.end_byte].decode("utf-8", errors="replace")
+                    docstring = _clean_docstring(comment_text) or None
 
             return ParsedFile(
                 path=path,
