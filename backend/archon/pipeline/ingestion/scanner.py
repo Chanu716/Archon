@@ -23,8 +23,9 @@ logger = structlog.get_logger(__name__)
 
 IGNORE_DIRS = {
     ".git", ".venv", "venv", "env", "__pycache__",
-    "node_modules", "dist", "build", ".idea", ".vscode",
-    ".mypy_cache", ".pytest_cache", "coverage", ".tox",
+    "node_modules", "dist", "build", "target", "bin", "obj", "out",
+    ".idea", ".vscode", ".mypy_cache", ".pytest_cache", "coverage", ".tox",
+    ".turbo", ".next", ".nuxt", "vendor", ".gradle", ".m2", ".cargo"
 }
 
 

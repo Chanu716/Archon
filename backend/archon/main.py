@@ -100,6 +100,10 @@ app.include_router(evolution.router, prefix="/api/v1", tags=["evolution"])
 app.include_router(investigation.router, prefix="/api/v1", tags=["investigation"])
 app.include_router(github_auth.router, prefix="/api/v1", tags=["github"])
 
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 async def root():
     return {"message": "Welcome to Archon API", "version": settings.ARCHON_VERSION}
+
+@app.api_route("/health", methods=["GET", "HEAD"])
+async def root_health():
+    return {"status": "ok", "version": settings.ARCHON_VERSION}

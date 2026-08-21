@@ -29,7 +29,8 @@ def import_local_repo(source_path: str, target_path: Path, repository_id: uuid.U
     # could also extract commit hash right from the source.
     try:
         shutil.copytree(source_dir, target_path, dirs_exist_ok=True, ignore=shutil.ignore_patterns(
-            "__pycache__", "node_modules", "dist", "build", ".venv", "venv", ".idea", ".vscode"
+            "__pycache__", "node_modules", "dist", "build", "target", "bin", "obj", "out",
+            ".venv", "venv", ".idea", ".vscode", ".git", ".turbo", ".next", ".nuxt", "vendor", ".gradle", ".m2"
         ))
         logger.info("local_copy_success")
     except Exception as e:
