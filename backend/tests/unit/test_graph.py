@@ -13,6 +13,7 @@ async def test_graph_builder_queries():
     parsed_file = ParsedFile(
         path="main.py",
         language="python",
+        module_name="main",          # ML-1: required field
         total_lines=10,
         docstring="Module doc",
         classes=[],
@@ -26,8 +27,9 @@ async def test_graph_builder_queries():
                 is_method=False,
                 is_async=False,
                 cyclomatic_complexity=1,
-                line_count=5,
+                start_line=1,            # ML-1: required field
                 end_line=5,
+                line_count=5,
                 nesting_depth=0,
                 docstring="Main func",
                 calls=[ResolvedCall(raw_name="print", target_qualified_name=None, resolution="inferred")]
@@ -44,9 +46,8 @@ async def test_graph_builder_queries():
     # Mock the driver and db
     with patch("archon.pipeline.graph.builder.neo4j_driver") as mock_driver, \
          patch("archon.pipeline.graph.builder.async_session_factory") as mock_db_factory:
-         
-        mock_driver.driver.session.return_value.__aenter__.return_value = mock_session
-        
+        mock_driver.session.return_value.__aenter__.return_value = mock_session
+        mock_driver.session.return_value.__aexit__ = AsyncMock(return_value=None)
         mock_db = AsyncMock()
         # mock db.execute().scalars().all() for GitCommits and GitFileChanges
         mock_cursor = MagicMock()

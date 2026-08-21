@@ -309,7 +309,7 @@ async def test_snapshot_id_always_injected():
     mock_session.__aexit__ = AsyncMock(return_value=None)
 
     with patch("archon.services.impact_service.neo4j_driver") as mock_driver:
-        mock_driver.driver.session.return_value = mock_session
+        mock_driver.session.return_value = mock_session
         # Expect ValueError because node won't be found; that's fine for this test
         try:
             await service.analyze("node:999", direction="upstream")

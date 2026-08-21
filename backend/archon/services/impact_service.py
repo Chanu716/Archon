@@ -258,7 +258,7 @@ class ImpactService:
         """
         if direction == "upstream":
             query = """
-            MATCH (caller {snapshot_id: $snapshot_id})-[r:CALLS|IMPORTS|INHERITS|DEFINES]->(n {snapshot_id: $snapshot_id})
+            MATCH (caller {snapshot_id: $snapshot_id})-[r:CALLS|IMPORTS|INHERITS|DEFINES|REQUESTS|HANDLED_BY]->(n {snapshot_id: $snapshot_id})
             WHERE elementId(n) = $node_id OR n.qualified_name = $node_id OR n.name = $node_id
             RETURN DISTINCT elementId(caller) AS id,
                    caller.name AS name,
@@ -267,7 +267,7 @@ class ImpactService:
                    coalesce(r.resolution, 'exact') AS resolution
             LIMIT $limit
             UNION
-            MATCH (caller {snapshot_id: $snapshot_id})-[r:CALLS|IMPORTS|INHERITS]->(child {snapshot_id: $snapshot_id})<-[:CONTAINS*1..2]-(n {snapshot_id: $snapshot_id})
+            MATCH (caller {snapshot_id: $snapshot_id})-[r:CALLS|IMPORTS|INHERITS|REQUESTS|HANDLED_BY]->(child {snapshot_id: $snapshot_id})<-[:CONTAINS*1..2]-(n {snapshot_id: $snapshot_id})
             WHERE (elementId(n) = $node_id OR n.qualified_name = $node_id OR n.name = $node_id)
               AND caller <> n AND caller <> child
             RETURN DISTINCT elementId(caller) AS id,
@@ -279,7 +279,7 @@ class ImpactService:
             """
         else:
             query = """
-            MATCH (n {snapshot_id: $snapshot_id})-[r:CALLS|IMPORTS|INHERITS|DEFINES]->(callee {snapshot_id: $snapshot_id})
+            MATCH (n {snapshot_id: $snapshot_id})-[r:CALLS|IMPORTS|INHERITS|DEFINES|REQUESTS|HANDLED_BY]->(callee {snapshot_id: $snapshot_id})
             WHERE elementId(n) = $node_id OR n.qualified_name = $node_id OR n.name = $node_id
             RETURN DISTINCT elementId(callee) AS id,
                    callee.name AS name,
@@ -288,7 +288,7 @@ class ImpactService:
                    coalesce(r.resolution, 'exact') AS resolution
             LIMIT $limit
             UNION
-            MATCH (n {snapshot_id: $snapshot_id})-[:CONTAINS*1..2]->(child {snapshot_id: $snapshot_id})-[r:CALLS|IMPORTS|INHERITS]->(callee {snapshot_id: $snapshot_id})
+            MATCH (n {snapshot_id: $snapshot_id})-[:CONTAINS*1..2]->(child {snapshot_id: $snapshot_id})-[r:CALLS|IMPORTS|INHERITS|REQUESTS|HANDLED_BY]->(callee {snapshot_id: $snapshot_id})
             WHERE (elementId(n) = $node_id OR n.qualified_name = $node_id OR n.name = $node_id)
               AND callee <> n AND callee <> child
             RETURN DISTINCT elementId(callee) AS id,

@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 import uuid
 import structlog
 from archon.db.neo4j import neo4j_driver
@@ -41,10 +41,10 @@ class GraphBuilder:
                 )
                 
                 # 3. Create Module Node
-                module_name = pfile.path.replace("/", ".").replace("\\", ".").replace(".py", "")
-                if module_name.startswith("."):
-                    module_name = module_name[1:]
-                    
+                # ML-1: Use module_name provided by the parser (language-neutral).
+                # Never re-derive module names from paths here — that is parser-specific logic.
+                module_name = pfile.module_name or pfile.path
+
                 await session.run(
                     """
                     MATCH (f:File {path: $path, repository_id: $repo_id, snapshot_id: $snapshot_id})

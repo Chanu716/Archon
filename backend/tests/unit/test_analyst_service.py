@@ -49,7 +49,7 @@ async def test_analyst_tool_loop(mock_db):
             # It should hit max iterations and yield traces for each tool call + the final warning
             assert mock_registry.execute.call_count == 5
             # We expect trace chunks
-            trace_chunks = [c for c in chunks if isinstance(c, str) and '"trace":' in c]
+            trace_chunks = [c for c in chunks if (isinstance(c, dict) and "trace" in c) or (isinstance(c, str) and '"trace":' in c)]
             assert len(trace_chunks) > 0
 
 

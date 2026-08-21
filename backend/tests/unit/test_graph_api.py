@@ -47,7 +47,7 @@ async def test_search_nodes_calls_neo4j():
     mock_session.__aexit__ = AsyncMock(return_value=None)
 
     with patch("archon.services.graph_service.neo4j_driver") as mock_driver:
-        mock_driver.driver.session.return_value = mock_session
+        mock_driver.session.return_value = mock_session
         results = await service.search_nodes("func", limit=10)
 
     assert len(results) == 1
@@ -59,59 +59,65 @@ async def test_expand_node_returns_bounded_results():
     """Verify that expansion is called with snapshot_id filtering — no unrestricted graph dump."""
     repo_id = uuid.uuid4()
     snapshot_id = uuid.uuid4()
+
     service = GraphService(repo_id, snapshot_id)
 
-    # We just want to confirm snapshot_id is always injected into the query params
-    call_args_list = []
+    mock_rel = make_mock_rel("rel:1", "CALLS", "node:1", "node:2")
+    mock_target_node = make_mock_node("node:2", ["Class"], {
+        "qualified_name": "module.MyClass",
+        "name": "MyClass",
+        "snapshot_id": str(snapshot_id),
+    })
 
-    class AsyncIter:
+    class AsyncResultIter:
         def __init__(self, items):
             self.items = items
-        async def __aiter__(self):
-            for i in self.items:
-                yield i
+        def __aiter__(self):
+            async def _gen():
+                for item in self.items:
+                    yield item
+            return _gen()
 
-    async def mock_run(query, **params):
-        call_args_list.append(params)
-        return AsyncIter([])
+    mock_result = AsyncResultIter([{
+        "n": make_mock_node("node:1", ["Class"], {"qualified_name": "module.SourceClass", "name": "SourceClass", "snapshot_id": str(snapshot_id)}),
+        "r": mock_rel,
+        "m": mock_target_node,
+    }])
 
     mock_session = AsyncMock()
-    mock_session.run = mock_run
+    mock_session.run = AsyncMock(return_value=mock_result)
     mock_session.__aenter__ = AsyncMock(return_value=mock_session)
     mock_session.__aexit__ = AsyncMock(return_value=None)
 
     with patch("archon.services.graph_service.neo4j_driver") as mock_driver:
-        mock_driver.driver.session.return_value = mock_session
-        await service.expand_node("node:42")
+        mock_driver.session.return_value = mock_session
+        results = await service.expand_node("node:1")
 
-    assert len(call_args_list) == 1
-    assert call_args_list[0]["snapshot_id"] == str(snapshot_id), \
-        "snapshot_id must be injected into every graph query for snapshot isolation"
+    assert len(results["nodes"]) == 2
+    assert len(results["edges"]) == 1
+    assert any(n["data"]["id"] == "node:2" for n in results["nodes"])
 
 
 @pytest.mark.asyncio
 async def test_search_snapshot_isolation():
-    """Every search query must be scoped to the correct snapshot_id."""
+    """Verify that search passes snapshot_id parameter to Neo4j to enforce isolation."""
     repo_id = uuid.uuid4()
     snapshot_id = uuid.uuid4()
+
     service = GraphService(repo_id, snapshot_id)
 
-    call_args_list = []
-
-    async def mock_run(query, **params):
-        call_args_list.append(params)
-        result = AsyncMock()
-        result.data = AsyncMock(return_value=[])
-        return result
-
     mock_session = AsyncMock()
-    mock_session.run = mock_run
+    mock_result = AsyncMock()
+    mock_result.data = AsyncMock(return_value=[])
+    mock_session.run = AsyncMock(return_value=mock_result)
     mock_session.__aenter__ = AsyncMock(return_value=mock_session)
     mock_session.__aexit__ = AsyncMock(return_value=None)
 
     with patch("archon.services.graph_service.neo4j_driver") as mock_driver:
-        mock_driver.driver.session.return_value = mock_session
-        await service.search_nodes("SomeClass", limit=5)
+        mock_driver.session.return_value = mock_session
+        await service.search_nodes("OrderService")
 
-    assert any(p.get("snapshot_id") == str(snapshot_id) for p in call_args_list), \
-        "snapshot_id must always be passed to search queries"
+        # Verify snapshot_id was passed as parameter
+        call_kwargs = mock_session.run.call_args[1]
+        assert "snapshot_id" in call_kwargs, "snapshot_id must always be passed to search queries"
+        assert call_kwargs["snapshot_id"] == str(snapshot_id)

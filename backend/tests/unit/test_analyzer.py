@@ -1,6 +1,7 @@
 import pytest
 import uuid
 from unittest.mock import AsyncMock, patch, MagicMock
+import archon.models.analysis_job  # Ensure AnalysisJob is registered in SQLAlchemy mapper
 from archon.pipeline.analysis.analyzer import StaticAnalyzer
 
 @pytest.mark.asyncio
@@ -18,7 +19,8 @@ async def test_static_analyzer_queries():
     
     with patch("archon.pipeline.analysis.analyzer.neo4j_driver") as mock_driver:
         with patch("archon.pipeline.analysis.analyzer.async_session_factory") as mock_db_factory:
-            mock_driver.driver.session.return_value.__aenter__.return_value = mock_session
+            mock_driver.session.return_value.__aenter__.return_value = mock_session
+            mock_driver.session.return_value.__aexit__ = AsyncMock(return_value=None)
             
             mock_db = AsyncMock()
             mock_db.add_all = MagicMock()

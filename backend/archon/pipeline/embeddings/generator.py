@@ -111,9 +111,9 @@ class EmbeddingGenerator:
         
         for pfile in parsed_files:
             # Module / File
-            module_name = pfile.path.replace("/", ".").replace("\\", ".").replace(".py", "")
-            if module_name.startswith("."):
-                module_name = module_name[1:]
+            # ML-1: Use module_name provided by the parser (language-neutral).
+            # Never re-derive module names from paths here — that is parser-specific logic.
+            module_name = pfile.module_name or pfile.path
                 
             module_doc = pfile.docstring or "No module docstring provided."
             module_text = f"Module: {module_name}\nFile: {pfile.path}\n\nDocstring:\n{module_doc}"

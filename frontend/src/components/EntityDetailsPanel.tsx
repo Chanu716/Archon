@@ -55,6 +55,7 @@ export default function EntityDetailsPanel({
     Class: 'text-green-400',
     Function: 'text-pink-400',
     Method: 'text-purple-400',
+    Endpoint: 'text-amber-400',
   }
 
   const typeColor = typeColors[entityType] || 'text-cyan-400'
@@ -92,10 +93,14 @@ export default function EntityDetailsPanel({
 
   const nodeProps: { label: string; value: string | number | undefined }[] = [
     { label: 'TYPE', value: entityType },
+    { label: 'HTTP_METHOD', value: node.method },
     { label: 'PATH', value: node.path },
     { label: 'COMPLEXITY_LINES', value: node.line_count !== undefined ? `${node.cyclomatic_complexity !== undefined ? node.cyclomatic_complexity : '?'} CC / ${node.line_count} lines` : undefined },
     { label: 'END_LINE', value: node.end_line },
     { label: 'LANGUAGE', value: node.language },
+    { label: 'RESOLUTION', value: node.resolution },
+    { label: 'EVIDENCE', value: node.evidence_type },
+    { label: 'CROSS_LANG', value: node.source_language && node.target_language ? `${node.source_language} → ${node.target_language}` : undefined },
   ]
 
   return (

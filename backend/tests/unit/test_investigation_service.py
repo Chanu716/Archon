@@ -98,6 +98,9 @@ async def test_get_impact_null_lookup(mock_db, repo_id, snapshot_id):
         qualified_name=None
     )
     
-    impact = await service.get_impact(context)
-    assert impact.direct_callers == 0
-    assert impact.graph["nodes"] == []
+    with patch("archon.services.investigation_service.ImpactService") as mock_impact_cls:
+        mock_impact_inst = mock_impact_cls.return_value
+        mock_impact_inst.analyze = AsyncMock(side_effect=ValueError("Entity not found"))
+        impact = await service.get_impact(context)
+        assert impact.direct_callers == 0
+        assert impact.graph["nodes"] == []

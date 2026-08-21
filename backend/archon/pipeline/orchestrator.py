@@ -1,12 +1,20 @@
 import uuid
-from typing import Callable, Awaitable
+from typing import Callable, Awaitable, List
 import structlog
 from archon.pipeline.ingestion.github import clone_github_repo
 from archon.pipeline.ingestion.local import import_local_repo
 from archon.pipeline.ingestion.scanner import scan_directory
 from archon.pipeline.parsers.registry import registry
+from archon.pipeline.parsers.base import ParsedFile, SkipRecord
 import archon.pipeline.parsers.python.parser  # Auto-register python parser
+import archon.pipeline.parsers.typescript.parser  # Auto-register typescript parser
+import archon.pipeline.parsers.javascript.parser  # Auto-register javascript parser
+import archon.pipeline.parsers.java.parser  # Auto-register java parser
+import archon.pipeline.parsers.csharp.parser  # Auto-register csharp parser
+import archon.pipeline.parsers.go.parser  # Auto-register go parser
+import archon.pipeline.parsers.rust.parser  # Auto-register rust parser
 from archon.pipeline.graph.builder import GraphBuilder
+from archon.pipeline.resolution import CrossLanguageResolver
 from archon.pipeline.analysis.analyzer import StaticAnalyzer
 from archon.pipeline.analysis.git_analyzer import GitAnalyzer
 from archon.pipeline.analysis.risk_calculator import RiskCalculator
@@ -44,18 +52,48 @@ async def run_analysis_pipeline(
             
         await progress_callback(job_id, 10.0, "parsing")
         
-        parsed_files = []
+        parsed_files: List[ParsedFile] = []
+        skip_records: List[SkipRecord] = []
+
         for file_path in ingestion_result.files:
             extension = file_path.suffix
             parser = registry.get_parser(extension)
-            if parser:
+            if parser is None:
+                # ML-1: Structured skip — no parser registered for this extension.
+                # This is expected for config files, images, etc.
+                skip_records.append(SkipRecord(
+                    path=str(file_path),
+                    extension=extension,
+                    reason="unsupported_extension",
+                ))
+                continue
+
+            try:
                 content = file_path.read_text(encoding="utf-8", errors="replace")
-                
                 # Make path relative to repository root for consistency
                 rel_path = file_path.relative_to(target_path).as_posix()
-                
                 parsed_file = parser.parse_file(rel_path, content)
                 parsed_files.append(parsed_file)
+            except Exception as e:
+                # Per-file failure must not abort the entire pipeline.
+                logger.error(
+                    "parse_file_error",
+                    path=str(file_path),
+                    language=parser.language,
+                    error=str(e)
+                )
+                skip_records.append(SkipRecord(
+                    path=str(file_path),
+                    extension=extension,
+                    reason=f"parse_error: {e}",
+                ))
+
+        logger.info(
+            "parsing_complete",
+            parsed_count=len(parsed_files),
+            skipped_count=len(skip_records),
+            registered_languages=sorted(registry.supported_extensions()),
+        )
                 
         # Persist AnalysisSnapshot to Postgres
         snapshot = AnalysisSnapshot(
@@ -95,6 +133,14 @@ async def run_analysis_pipeline(
             commit_sha=ingestion_result.commit_sha or "unknown"
         )
         await graph_builder.build(parsed_files)
+        
+        await progress_callback(job_id, 58.0, "cross_language_resolution")
+        cross_resolver = CrossLanguageResolver(
+            repository_id=repository_id,
+            snapshot_id=snapshot_id,
+            target_path=target_path
+        )
+        await cross_resolver.resolve_and_persist(parsed_files)
         
         await progress_callback(job_id, 65.0, "static_analysis")
         analyzer = StaticAnalyzer(repository_id, snapshot.id)
