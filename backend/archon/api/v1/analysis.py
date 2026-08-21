@@ -13,7 +13,12 @@ from archon.services.job_service import JobService
 router = APIRouter()
 
 
-async def _run_analysis_pipeline(job_id: uuid.UUID, repo: Repository):
+async def _run_analysis_pipeline(
+    job_id: uuid.UUID,
+    repository_id: uuid.UUID,
+    source_url: str,
+    source_type: str,
+):
     """Background task runner — wires into the full analysis pipeline."""
     from archon.pipeline.orchestrator import run_analysis_pipeline
     from archon.db.session import async_session_factory
@@ -30,13 +35,17 @@ async def _run_analysis_pipeline(job_id: uuid.UUID, repo: Repository):
         except Exception as e:
             logger.error("failed_to_update_progress", job_id=str(j_id), error=str(e))
 
-    await run_analysis_pipeline(
-        repository_id=repo.id,
-        job_id=job_id,
-        source_url=repo.managed_path or repo.source_url,  # managed_path has token for private repos
-        source_type=repo.source_type,
-        progress_callback=progress_callback
-    )
+    try:
+        await run_analysis_pipeline(
+            repository_id=repository_id,
+            job_id=job_id,
+            source_url=source_url,
+            source_type=source_type,
+            progress_callback=progress_callback
+        )
+    except Exception as e:
+        logger.error("analysis_pipeline_background_error", job_id=str(job_id), error=str(e))
+        await progress_callback(job_id, -1.0, "failed", str(e))
 
 
 @router.post("/repositories/{repo_id}/analyze", response_model=JobResponse, status_code=202)
@@ -54,7 +63,10 @@ async def trigger_analysis(
     job_service = JobService(db)
     job = await job_service.create_job(repo_id)
 
-    await adapter.submit(job.id, _run_analysis_pipeline, repo)
+    source_url = repo.managed_path or repo.source_url
+    source_type = repo.source_type
+
+    await adapter.submit(job.id, _run_analysis_pipeline, repo_id, source_url, source_type)
 
     return job
 

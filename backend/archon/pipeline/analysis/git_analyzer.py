@@ -24,6 +24,7 @@ Normalization:
   normalized_churn = churn / max_churn   [max-normalization]
   If max_churn == 0: normalized_churn = 0.0  (no division by zero)
 """
+import asyncio
 import uuid
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
@@ -74,7 +75,8 @@ class GitAnalyzer:
 
         logger.info("git_analysis_starting", snapshot_id=str(self.snapshot_id))
 
-        commits_data, file_changes_data = self._extract_history(repo)
+        # Offload synchronous Git operations to thread pool to prevent blocking Uvicorn event loop
+        commits_data, file_changes_data = await asyncio.to_thread(self._extract_history, repo)
         churn_data = self._aggregate_churn(file_changes_data)
         contributors_data = self._aggregate_contributors(commits_data, file_changes_data)
 
@@ -145,12 +147,22 @@ class GitAnalyzer:
                 if not has_valid_parent:
                     logger.debug("git_commit_missing_parent", sha=commit.hexsha, msg="Skipping diff due to shallow boundary")
                     continue
+
+                # Pre-calculate diff map ONCE per commit rather than per file
+                diff_map: Dict[str, str] = {}
+                if commit.parents:
+                    try:
+                        for diff in commit.parents[0].diff(commit):
+                            p = diff.b_path or diff.a_path
+                            if p:
+                                diff_map[p] = diff.change_type or "M"
+                    except Exception:
+                        pass
                 
                 # Extract file-level stats
                 # GitPython's stats give us insertions/deletions per file
                 for file_path, stats in commit.stats.files.items():
-                    # Determine change type
-                    change_type = self._infer_change_type(commit, file_path)
+                    change_type = diff_map.get(file_path, "M" if commit.parents else "A")
                     file_changes_data.append({
                         "commit_sha": commit.hexsha,
                         "file_path": self._normalize_path(file_path),
@@ -167,8 +179,7 @@ class GitAnalyzer:
     def _infer_change_type(self, commit, file_path: str) -> str:
         """
         Infer the change type for a file in a commit.
-        GitPython's stats don't directly expose A/M/D/R, so we inspect diff.
-        Falls back to 'M' if detection fails (safe default for existing files).
+        Falls back to 'M' if detection fails, or 'A' if initial commit.
         """
         try:
             if commit.parents:
@@ -177,9 +188,8 @@ class GitAnalyzer:
                 for diff in diffs:
                     diff_path = diff.b_path or diff.a_path
                     if diff_path == file_path:
-                        return diff.change_type  # A/M/D/R from GitPython
+                        return diff.change_type or "M"
             else:
-                # Initial commit — everything is added
                 return "A"
         except Exception:
             pass

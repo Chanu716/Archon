@@ -6,6 +6,7 @@ from archon.pipeline.ingestion.github import clone_github_repo
 from archon.pipeline.ingestion.local import import_local_repo
 from archon.pipeline.ingestion.scanner import scan_directory
 from archon.pipeline.parsers.base import ParsedFile, SkipRecord
+from archon.pipeline.parsers.registry import registry
 from archon.pipeline.parsers.safe_parse import safe_parse_file
 from archon.pipeline.graph.builder import GraphBuilder
 from archon.pipeline.resolution import CrossLanguageResolver
