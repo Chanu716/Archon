@@ -31,12 +31,25 @@ Archon presents a **Cyber-Pixel retro-terminal interface** designed for maximum 
 * **Color-Coded AST Graph Nodes**:
   * 🟡 **Repository** (`#f59e0b`): Root project entity.
   * 🟠 **Directory** (`#fb923c`): Folder structure.
-  * 🟣 **File** (`#818cf8`): Source files.
-  * 🔵 **Module** (`#3b82f6`): Python modules.
-  * 🟢 **Class** (`#10b981`): Object classes.
-  * 🌸 **Function** (`#ec4899`): Standalone functions.
-  * 🪻 **Method** (`#a78bfa`): Class-bound methods.
+  * 🟣 **File** (`#818cf8`): Source files across 7 supported languages.
+  * 🔵 **Module** (`#3b82f6`): Code modules and namespaces (Python, TS/JS, Go packages, Java/C# namespaces, Rust crates).
+  * 🟢 **Class / Struct** (`#10b981`): Object classes, interfaces, and struct declarations.
+  * 🌸 **Function** (`#ec4899`): Standalone functions, routes, and handlers.
+  * 🪻 **Method** (`#a78bfa`): Class and struct methods.
 * **Bracket Tags**: Indicators like `[STATUS: OK]`, `[DET]`, `[HEU]`, and `[ 3D_GALAXY ]` indicate interactive controls and verified telemetry sources.
+
+---
+
+## ⚡ Supported Languages & File Types
+
+Archon provides deterministic parsing with subprocess fault isolation for:
+- **Python**: `.py` (Native AST + Symtable)
+- **TypeScript**: `.ts`, `.tsx` (Tree-Sitter TypeScript & TSX)
+- **JavaScript**: `.js`, `.jsx`, `.mjs`, `.cjs` (Tree-Sitter JavaScript)
+- **Go**: `.go` (Tree-Sitter Go)
+- **Java**: `.java` (Tree-Sitter Java)
+- **C# / .NET**: `.cs` (Tree-Sitter C#)
+- **Rust**: `.rs` (Tree-Sitter Rust)
 
 ---
 
@@ -87,12 +100,14 @@ Navigate to `http://localhost:3000/repositories` in your browser.
 1. Click **`[ OVERVIEW ]`** on the newly ingested repository card.
 2. In the top right corner, click **`[ TRIGGER_ANALYSIS ]`**.
 3. Watch the stepped pixel progress bar as Archon executes:
-   * **Stage 1 (CLONING)**: Verifies git ref and tree integrity.
-   * **Stage 2 (AST_PARSING)**: Parses syntax trees into modules, classes, functions, and call graphs.
-   * **Stage 3 (STATIC_ANALYSIS)**: Computes cyclomatic complexity, nesting depth, and coupling.
-   * **Stage 4 (GIT_ANALYSIS)**: Analyzes commit logs, churn rates, and author distributions.
-   * **Stage 5 (GRAPH_POPULATION)**: Commits the snapshot sub-graph to Neo4j.
-   * **Stage 6 (VECTOR_EMBEDDING)**: Generates embeddings for semantic retrieval.
+    * **Stage 1 (CLONING)**: Verifies git ref and tree integrity.
+    * **Stage 2 (AST_PARSING)**: Parses syntax trees into modules, classes, functions, and call graphs across Python, TS/JS, Go, Java, C#, and Rust with subprocess fault isolation.
+    * **Stage 3 (GIT_ANALYSIS)**: Analyzes commit logs, churn rates, and author distributions.
+    * **Stage 4 (GRAPH_POPULATION)**: Commits the snapshot sub-graph to Neo4j.
+    * **Stage 5 (CROSS_LANGUAGE_RESOLUTION)**: Resolves API route bindings, shared contracts, and cross-boundary dependencies.
+    * **Stage 6 (STATIC_ANALYSIS)**: Computes cyclomatic complexity, nesting depth, and coupling.
+    * **Stage 7 (VECTOR_EMBEDDING)**: Generates embeddings for semantic retrieval.
+    * **Stage 8 (RISK_CALCULATION)**: Computes multi-factor risk scores and regression heuristics.
 4. When status reaches **`COMPLETED` (100%)**, click **`[ 🌌 ARCHITECTURE GRAPH ]`** to enter the visualization canvas.
 
 ---

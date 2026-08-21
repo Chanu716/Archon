@@ -447,31 +447,47 @@ HNSW index on `embedding` column. Filter indexes on `repository_id` and `chunk_t
 
 ---
 
-## 7. Python Parser Architecture
+## 7. Polyglot Parser & Cross-Language Resolution Architecture
 
 ### The Language-Agnostic Abstraction
 
 `LanguageParser` ABC defines:
 - `language: str` property
 - `file_extensions: list[str]` property
-- `parse_file(path: str, content: str) -> ParsedFile` — must not raise; capture errors in `ParsedFile.parse_errors`
+- `parse_file(path: str, content: str) -> ParsedFile` — must not raise; captures syntax/runtime anomalies in `ParsedFile.parse_errors`
 
-`ParserRegistry` maps extensions to parser instances. Adding a new language = register one class.
+`ParserRegistry` maps file extensions to parser instances.
+
+### Supported Language Parsers & Grammars
+
+1. **Python (`.py`)**: Built-in `ast` and `symtable` modules. Extracts functions, classes, decorators, docstrings, imports, and calls.
+2. **TypeScript (`.ts`, `.tsx`)**: `tree-sitter-typescript` / `tree-sitter-tsx`. C-memory safe `TreeCursor` traversal for complexity, nesting depth, type annotations, and JSX component declarations.
+3. **JavaScript (`.js`, `.jsx`, `.mjs`, `.cjs`)**: `tree-sitter-javascript`. Extracts ES6 modules, CommonJS `require()` bindings, arrow functions, and prototype methods.
+4. **Go (`.go`)**: `tree-sitter-go`. Extracts package declarations, exported/unexported functions, struct types, receiver methods, and imports.
+5. **Java (`.java`)**: `tree-sitter-java`. Extracts packages, classes, interfaces, method signatures, annotations, and inheritance hierarchies.
+6. **C# (`.cs`)**: `tree-sitter-c-sharp`. Extracts namespaces, classes, interfaces, properties, methods, and ASP.NET route attributes.
+7. **Rust (`.rs`)**: `tree-sitter-rust`. Extracts modules, struct declarations, `impl` blocks, traits, functions, and macro invocations.
+
+### Subprocess Fault Isolation (`safe_parse.py`)
+
+To guarantee that C-level memory corruption or segmentation faults inside native Tree-Sitter grammars never terminate the Uvicorn worker process, all file parsing runs inside an isolated worker subprocess with a 30-second watchdog timeout. If any file crashes the subprocess, the parent worker records a fallback `ParsedFile`, logs the anomaly, and respawns the parser child process seamlessly.
+
+### Cross-Language Resolution (`CrossLanguageResolver`)
+
+Cross-language dependency resolution links heterogeneous components:
+- Frontend API calls (e.g. `axios.get('/api/users')`, `fetch('/auth')`) matched to backend route handlers in Python (FastAPI/Flask), Go (Gin/Fiber), Java (Spring), C# (ASP.NET), and Rust (Actix/Axum).
+- Shared schema, model, and entity bindings across polyglot repositories.
 
 ### Parsed Data Models
 
 Key models: `ParsedFile`, `ParsedClass`, `ParsedFunction`, `ParsedImport`, `ParsedParameter`
-
-### Python Implementation
-
-Uses Python's built-in `ast` module. Extracts functions, classes, methods, parameters, imports, decorators, inheritance, docstrings.
 
 ### Call Resolution Strategy (Correction #4)
 
 Call extraction is explicit about confidence level:
 
 ```python
-@dataclass
+@dataclass(unsafe_hash=True)
 class ResolvedCall:
     raw_name: str              # as found in source: "self.service.process"
     target_qualified_name: Optional[str]  # resolved target or None
@@ -488,7 +504,7 @@ The parser **never invents** an `exact` relationship when only `inferred` is jus
 
 ### Cyclomatic Complexity
 
-CC = 1 + count of decision points: `if`, `elif`, `for`, `while`, `except` (each handler), `with`, `assert`, `and`/`or` operators, ternary expressions, comprehension `if` clauses, `match`/`case` arms.
+CC = 1 + count of decision points: `if`, `elif`, `for`, `while`, `catch`/`except`, `switch`/`case` branches, ternary expressions, `&&`/`||`/`??` logical operators. Computed via deterministic `TreeCursor` traversal.
 
 ---
 
@@ -979,16 +995,14 @@ Log categories:
 
 ---
 
-## 23. Future Extension Points — Additional Languages
+## 23. Polyglot Language Extensibility
 
-Adding a language:
-1. Implement `LanguageParser` for the new language
-2. Register in `ParserRegistry`
-3. Add extension to `SUPPORTED_EXTENSIONS`
+Archon ships with native production-grade parsers for **Python**, **TypeScript/TSX**, **JavaScript/JSX**, **Go**, **Java**, **C#**, and **Rust** via Tree-Sitter and Python AST.
 
-Nothing else changes. The pipeline, graph builder, metrics, and AI tools all operate on `ParsedFile` objects.
-
-**Recommended future backend**: `tree-sitter` (consistent API for 50+ languages).
+Adding an 8th language:
+1. Implement `LanguageParser` subclass wrapping the corresponding Tree-Sitter grammar
+2. Register in `ParserRegistry` with its supported extensions
+3. The rest of the pipeline (graph construction, metrics, git intelligence, embeddings, and AI reasoning) works automatically without modification.
 
 ---
 
@@ -1014,10 +1028,10 @@ When auth is added, ChaOS authenticates with a scoped API key via `Authorization
 | Vector Search | pgvector | Avoids a separate service; sufficient for MVP scale |
 | Graph DB | Neo4j 5 Community | Graph-native; Cypher for traversal queries |
 | Graph Algorithms | Native Cypher first; APOC as supplement | Keeps core logic readable and APOC-independent |
-| Parser (Python) | `ast` module | Built-in, no dependencies, safe (no code exec) |
-| Git | GitPython | Pythonic, well-maintained |
-| LLM | Provider-abstracted (OpenAI default) | Swappable via LLMProvider ABC |
-| Embeddings | Config-driven (text-embedding-3-small default) | Dimension not hardcoded; provider-swappable |
-| Frontend | React 18 + TypeScript + Vite | Industry standard |
-| Graph Visualization | Cytoscape.js | Graph-native, large-graph layout algorithms |
+| AST Parsers | Tree-Sitter + Python `ast` | Subprocess-isolated, multi-language (Python, TS/JS, Go, Java, C#, Rust) |
+| Git | GitPython (async thread-offloaded) | Read-only commit logs, single-pass diff mapping, churn metrics |
+| LLM | Provider-abstracted (Gemini / OpenAI / Anthropic / Ollama) | Swappable via LLMProvider ABC |
+| Embeddings | Provider-abstracted (Gemini / OpenAI / Ollama) | Batch embedding, config-driven dimensions |
+| Frontend | React 18 + TypeScript + Vite | Modern reactive single-page application |
+| Graph Visualization | Three.js WebGL (3D Galaxy) + Cytoscape.js (2D Planar) | Dual-perspective cosmic clustering and deterministic 2D topological trees |
 | Containers | Docker Compose | Full local stack in one command |

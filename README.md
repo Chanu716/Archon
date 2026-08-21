@@ -1,13 +1,26 @@
-# Archon
+<div align="center">
 
-> **Structure first. Intelligence second.**
+<pre>
+█████╗ ██████╗  ██████╗██╗  ██╗ ██████╗ ███╗   ██╗
+██╔══██╗██╔══██╗██╔════╝██║  ██║██╔═══██╗████╗  ██║
+███████║██████╔╝██║     ███████║██║   ██║██╔██╗ ██║
+██╔══██║██╔══██╗██║     ██╔══██║██║   ██║██║╚██╗██║
+██║  ██║██║  ██║╚██████╗██║  ██║╚██████╔╝██║ ╚████║
+╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═══╝
+</pre>
 
-Archon transforms complex codebases into interactive, deterministic knowledge graphs and equips an evidence-grounded AI analyst to reason over structural dependencies without hallucinations.
+[![Status](https://img.shields.io/badge/System-Operational-00f3ff?style=for-the-badge&logo=statuspage&logoColor=black)](http://localhost:3000)
+[![Graph](https://img.shields.io/badge/Graph-Neo4j_5.x-008CC1?style=for-the-badge&logo=neo4j&logoColor=white)](https://neo4j.com)
+[![Vectors](https://img.shields.io/badge/Vectors-pgvector-336791?style=for-the-badge&logo=postgresql&logoColor=white)](https://github.com/pgvector/pgvector)
+[![Visualization](https://img.shields.io/badge/WebGL-Three.js_&_Cytoscape-black?style=for-the-badge&logo=three.js&logoColor=white)](https://threejs.org)
 
-[![Status](https://img.shields.io/badge/System-Operational-00f3ff?style=flat-square)](http://localhost:3000)
-[![Graph](https://img.shields.io/badge/Graph-Neo4j_5.x-008CC1?style=flat-square&logo=neo4j&logoColor=white)](https://neo4j.com)
-[![Vectors](https://img.shields.io/badge/Vectors-pgvector-336791?style=flat-square&logo=postgresql&logoColor=white)](https://github.com/pgvector/pgvector)
-[![Languages](https://img.shields.io/badge/Parsers-Python_•_TS_•_JS_•_Go_•_Java_•_C%23_•_Rust-brightgreen?style=flat-square)](https://github.com/Chanu716/Archon)
+**Archon** transforms complex codebases into interactive, deterministic knowledge graphs and equips an evidence-grounded AI analyst to reason over structural dependencies without hallucinations.
+
+[User Operating Handbook (MANUAL.md)](MANUAL.md) • [Technical Architecture Specification](archon_architecture.md)
+
+</div>
+
+> **Core Principle**: Structure first. Intelligence second.
 
 ---
 
@@ -126,11 +139,5 @@ poetry run pytest tests/unit/
 
 ## Documentation
 
-- [User Operating Handbook (MANUAL.md)](MANUAL.md) — Comprehensive guide on navigating graphs, running impact analyses, and using the AI analyst.
-- [Technical Architecture Specification (archon_architecture.md)](archon_architecture.md) — Complete specification of data models, parser visitor patterns, and graph schemas.
-
----
-
-## License
-
-MIT License. See [LICENSE](LICENSE) for details.
+* [User Operating Handbook (MANUAL.md)](MANUAL.md) — Step-by-step operational guide for all features, graphs, search, and blast radius workflows.
+* [Technical Architecture Specification (archon_architecture.md)](archon_architecture.md) — Detailed engineering document covering database schemas, parser visitor patterns, and algorithms.
