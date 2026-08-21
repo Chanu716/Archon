@@ -12,14 +12,16 @@ logger = structlog.get_logger(__name__)
 
 def _get_allowed_origins() -> list[str]:
     """Build CORS allowed origins list from env or defaults."""
-    env_origins = os.getenv("ALLOWED_ORIGINS", "")
-    if env_origins:
-        return [o.strip() for o in env_origins.split(",") if o.strip()]
-    return [
+    default_origins = [
         "http://localhost:3000",
         "http://localhost:5173",
         "https://nohcra.netlify.app",
     ]
+    env_origins = os.getenv("ALLOWED_ORIGINS", "")
+    if env_origins:
+        parsed = [o.strip() for o in env_origins.split(",") if o.strip()]
+        return list(set(default_origins + parsed))
+    return default_origins
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -66,9 +68,11 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_get_allowed_origins(),
+    allow_origin_regex=r"https://.*\.netlify\.app|http://localhost:\d+",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 @app.exception_handler(Exception)
