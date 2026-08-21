@@ -9,7 +9,18 @@ import GitDashboard from './pages/GitDashboard'
 import EvolutionDashboard from './pages/EvolutionDashboard'
 import IntelligenceWorkbench from './pages/IntelligenceWorkbench'
 
-const queryClient = new QueryClient()
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: (failureCount, error: any) => {
+        if (error?.response?.status === 429) return false
+        return failureCount < 2
+      },
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
+    },
+  },
+})
 
 function App() {
   return (

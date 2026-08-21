@@ -21,8 +21,9 @@ export default function OverviewPage() {
     refetchInterval: (query) => {
       const status = query.state.data?.status
       if (status === 'completed' || status === 'failed') return false
-      return 1000
+      return 3000
     },
+    refetchIntervalInBackground: false,
   })
 
   const analyzeMutation = useMutation({
