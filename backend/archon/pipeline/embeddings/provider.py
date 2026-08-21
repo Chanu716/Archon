@@ -100,6 +100,30 @@ class GeminiEmbeddingProvider(EmbeddingProvider):
             return [0.0] * settings.EMBEDDING_DIMENSIONS
 
     async def embed_batch(self, texts: List[str]) -> List[List[float]]:
+        if not texts or not self.api_key:
+            return [[0.0] * settings.EMBEDDING_DIMENSIONS for _ in texts]
+        
+        valid_texts = [t if t.strip() else " " for t in texts]
+        try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:batchEmbedContents?key={self.api_key}"
+            requests_payload = [{"model": f"models/{self.model}", "content": {"parts": [{"text": t[:2000]}]}} for t in valid_texts]
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                res = await client.post(url, json={"requests": requests_payload})
+                if res.status_code == 200:
+                    data = res.json()
+                    embeddings_raw = data.get("embeddings", [])
+                    results = []
+                    for item in embeddings_raw:
+                        values = item.get("values", [])
+                        if len(values) < settings.EMBEDDING_DIMENSIONS:
+                            values = values + [0.0] * (settings.EMBEDDING_DIMENSIONS - len(values))
+                        results.append(values[:settings.EMBEDDING_DIMENSIONS])
+                    if len(results) == len(texts):
+                        return results
+        except Exception as e:
+            logger.warning("gemini_batch_embed_failed_fallback", error=str(e))
+
+        # Fallback to individual embed
         results = []
         for text in texts:
             emb = await self.embed(text)
