@@ -53,6 +53,9 @@ async def run_analysis_pipeline(
             
         await progress_callback(job_id, 10.0, "parsing")
         
+        parsed_files: List[ParsedFile] = []
+        skip_records: List[SkipRecord] = []
+        
         total_files = len(ingestion_result.files)
         for idx, file_path in enumerate(ingestion_result.files):
             # Yield periodically to allow event loop to process health checks and polling requests
