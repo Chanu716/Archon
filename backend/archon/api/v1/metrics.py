@@ -22,7 +22,21 @@ async def get_repository_health(repository_id: uuid.UUID, db: AsyncSession = Dep
     )
     snapshot = result.scalars().first()
     if not snapshot:
-        raise HTTPException(status_code=404, detail="No analysis snapshot found for this repository")
+        return {
+            "repository_id": repository_id,
+            "snapshot_id": None,
+            "commit_sha": None,
+            "health": {
+                "total_modules": 0,
+                "total_classes": 0,
+                "total_functions": 0,
+                "average_complexity": 0.0,
+                "maximum_complexity": 0,
+                "circular_dependencies": 0,
+                "high_complexity_functions": 0,
+                "high_coupling_modules": 0
+            }
+        }
         
     # Get all metrics for this snapshot
     metrics_result = await db.execute(
